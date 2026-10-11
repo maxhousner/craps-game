@@ -1,0 +1,162 @@
+// Chip rack, dice, the stickman's call, the My Bets list, the spot menu, issues, toasts and sheets.
+import { money } from '../engine/table.js';
+import { chipColor, shortMoney, dieHTML } from './table-view.js';
+
+export const CHIP_VALUES = [1, 5, 25, 100, 500, 1000];
+
+export function renderChipRack(el, selected) {
+  el.innerHTML = CHIP_VALUES.map((v, i) => `
+    <button class="rack-chip chip ${chipColor(v)}${v === selected ? ' selected' : ''}" data-chip="${v}"
+      role="radio" aria-checked="${v === selected}" aria-label="$${v} chip (key ${i + 1})">${shortMoney(v)}</button>`).join('');
+}
+
+export function showDice(el, d1, d2) {
+  el.innerHTML = dieHTML(d1, 'big') + dieHTML(d2, 'big');
+}
+
+// Tumble random faces for ~0.8s, then land on the real roll.
+export function animateDice(el, d1, d2, fast) {
+  if (fast || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    showDice(el, d1, d2);
+    return Promise.resolve();
+  }
+  const face = () => 1 + Math.floor(Math.random() * 6); // looks only; the real roll is already decided
+  return new Promise((resolve) => {
+    const start = performance.now();
+    el.classList.add('rolling');
+    const tick = () => {
+      if (performance.now() - start < 800) {
+        showDice(el, face(), face());
+        setTimeout(tick, 70);
+        return;
+      }
+      el.classList.remove('rolling');
+      showDice(el, d1, d2);
+      resolve();
+    };
+    tick();
+  });
+}
+
+const WORDS = { 4: 'Four', 6: 'Six', 8: 'Eight', 10: 'Ten' };
+
+export function stickmanCall({ d1, d2, total, pointBefore }, rules) {
+  let name;
+  if (WORDS[total]) name = d1 === d2 ? `${WORDS[total]} the hard way!` : `${WORDS[total]}, easy ${WORDS[total].toLowerCase()}.`;
+  else {
+    name = {
+      2: 'Aces! Snake eyes.', 3: 'Ace-deuce, three.', 5: 'Five, no field five.', 7: 'Seven.',
+      9: 'Nine, center field nine.', 11: 'Yo-leven!', 12: 'Twelve, boxcars!',
+    }[total];
+  }
+  if (pointBefore == null) {
+    if (total === 7 || total === 11) return `${name} Winner on the come-out, pay the line!`;
+    if ([2, 3, 12].includes(total)) {
+      const bar = total === rules.barNumber ? ` Bar ${total} on the don'ts.` : ' Pay the don\'ts.';
+      return `${name} Craps, line away.${bar}`;
+    }
+    return `${name} The point is ${total}, mark it.`;
+  }
+  if (total === pointBefore) return `${name} Winner! Pay the line.`;
+  if (total === 7) return 'Seven out! Line away, pay the don\'ts.';
+  return name;
+}
+
+export function resultsText(results) {
+  return results.map((r) => {
+    if (r.outcome === 'move') return `${r.label.replace(/ \d+$/, '')} → ${r.to}`;
+    if (r.outcome === 'push') return `${r.label} push`;
+    return `${r.label} ${r.outcome === 'win' ? '+' : '−'}${money(r.outcome === 'win' ? r.win : r.lost)}`;
+  }).join(' · ');
+}
+
+// One row in My Bets or the spot menu: amount, payout and the controls for that bet.
+function betRow(table, bet, chip, issues) {
+  const def = table.def(bet);
+  const label = def.label(bet);
+  const working = table.isWorking(bet);
+  const info = table.oddsInfo(bet);
+  const hit = def.hitWin?.(table, bet);
+  const removable = def.removable(table, bet);
+  let status = '';
+  if (def.toggle === 'bet') status = working ? 'Working' : 'Off';
+  if (def.toggle === 'odds' && bet.number && bet.odds) status = working ? 'Odds working' : 'Odds off';
+  const btn = (action, text, aria, disabled = false) =>
+    `<button data-action="${action}" data-key="${bet.key}" aria-label="${aria}"${disabled ? ' disabled' : ''}>${text}</button>`;
+  return `
+    <div class="bet-row${status.endsWith('ff') ? ' is-off' : ''}">
+      <div class="bet-main">
+        <span class="bet-name">${label}</span>
+        <span class="bet-amt">${money(bet.amount)}${bet.odds ? ` <small>+ ${money(bet.odds)} ${info?.take === false ? 'lay' : 'odds'}</small>` : ''}</span>
+        <span class="bet-meta">${def.pays(table.rules, bet)}${hit != null ? ` · wins ${money(hit)}` : ''}${status ? ` · <b>${status}</b>` : ''}</span>
+      </div>
+      <div class="bet-actions">
+        ${btn('add', `+${shortMoney(chip)}`, `Add $${chip} to ${label}`)}
+        ${btn('minus', `−${shortMoney(chip)}`, `Remove $${chip} from ${label}`, removable === 0)}
+        ${info ? btn('odds-add', `+${info.take ? 'Odds' : 'Lay'}`, `Add $${chip} ${info.take ? 'odds' : 'lay odds'} to ${label}`) : ''}
+        ${info && bet.odds ? btn('odds-minus', `−${info.take ? 'Odds' : 'Lay'}`, `Remove $${chip} odds from ${label}`) : ''}
+        ${def.toggle && (def.toggle === 'bet' || bet.odds) ? btn('toggle', working ? 'Off' : 'On', `Turn ${label} ${working ? 'off' : 'on'}`) : ''}
+        ${btn('down', '✕', `Take down ${label}`, removable < bet.amount)}
+      </div>
+      ${issues.filter((i) => i.key === bet.key).map((i) => `
+        <p class="issue ${i.level}">${i.message}
+          <button data-action="fix" data-key="${bet.key}" data-part="${i.part}">Fix</button></p>`).join('')}
+    </div>`;
+}
+
+export function renderBetList(el, table, chip, issues) {
+  const bets = Object.values(table.bets);
+  el.innerHTML = bets.length
+    ? bets.map((b) => betRow(table, b, chip, issues)).join('')
+    : '<p class="empty">No bets yet. Pick a chip below, then tap a spot on the table.</p>';
+}
+
+// Long-press / right-click menu for one spot. A number box offers place, buy, lay and put.
+export function renderSpotMenu(el, table, chip, spot, issues) {
+  let title, adds, keys;
+  if (spot.number) {
+    const n = spot.number;
+    title = `The ${n}`;
+    adds = [[`place:${n}`, `Place ${n}`], [`buy:${n}`, `Buy ${n}`], [`lay:${n}`, `Lay ${n}`]];
+    if (table.point) adds.push([`come:${n}`, `Put ${n}`]);
+    keys = [`place:${n}`, `buy:${n}`, `lay:${n}`, `come:${n}`, `dontCome:${n}`];
+  } else {
+    title = table.label(spot.key);
+    adds = [[spot.key, `${title}`]];
+    keys = [spot.key];
+  }
+  const rows = keys.filter((k) => table.bets[k]).map((k) => betRow(table, table.bets[k], chip, issues)).join('');
+  el.innerHTML = `
+    <div class="sheet-head"><h2>${title}</h2><button class="icon-btn" data-close aria-label="Close">✕</button></div>
+    <div class="menu-adds">${adds.map(([k, text]) => `<button data-action="add" data-key="${k}">${text} <b>+${money(chip)}</b></button>`).join('')}</div>
+    ${rows || '<p class="empty">No bet here yet.</p>'}`;
+}
+
+export function renderIssues(el, issues) {
+  el.hidden = issues.length === 0;
+  const errors = issues.filter((i) => i.level === 'error').length;
+  el.innerHTML = issues.map((i) => `
+    <p class="issue ${i.level}">${i.message}
+      <button data-action="fix" data-key="${i.key}" data-part="${i.part}">Fix</button></p>`).join('')
+    + (issues.length > 1 ? `<button class="fix-all" data-action="fix-all">Fix all${errors ? ` (${errors} blocking)` : ''}</button>` : '');
+}
+
+let toastTimer;
+export function toast(message) {
+  const el = document.getElementById('toast');
+  el.textContent = message;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+export function openSheet(id) {
+  closeSheets();
+  document.getElementById(id).classList.add('open');
+  document.getElementById('backdrop').hidden = false;
+}
+
+export function closeSheets() {
+  document.querySelectorAll('.sheet.open').forEach((s) => s.classList.remove('open'));
+  document.getElementById('backdrop').hidden = true;
+}
