@@ -301,7 +301,7 @@ export const TOPICS = [
       ['House edge', 'Easy 11.11% · hard 13.89%.'],
       ['Example', 'Hop 1-4 wins on 1-4 or 4-1, but not on 2-3, which is also a 5.'],
     ],
-    tip: 'Open "Hop bets" in the center props to see all 21 combinations.',
+    tip: 'Open "Hop bets" in the center action strip to see all 21 combinations.',
   },
 
   // ---------- Side bets ----------
@@ -354,6 +354,14 @@ export function topic(id) {
   return TOPICS.find((t) => t.id === id);
 }
 
+// Facts show in this order on every card. null marks where bet-specific labels (Small, Tall, All, ...) go.
+const FACT_ORDER = ['When you can bet', 'Wins', 'Wins / loses', null, 'Loses', 'Pushes', 'Pays', '"To 1" vs "for 1"',
+  'Vig', 'Chances', 'Proper units', 'House edge', 'On the come-out', 'Can it come down?', 'Example'];
+function factRank(label) {
+  const i = FACT_ORDER.indexOf(label);
+  return i === -1 ? FACT_ORDER.indexOf(null) : i;
+}
+
 // `anchor` gives the card its id (help page only); `extra` is inserted after the summary.
 export function topicHTML(t, { anchor = false, extra = '' } = {}) {
   return `
@@ -361,7 +369,7 @@ export function topicHTML(t, { anchor = false, extra = '' } = {}) {
       <h3>${t.title}</h3>
       <p class="summary">${t.summary}</p>
       ${extra}
-      <dl class="facts">${t.facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      <dl class="facts">${[...t.facts].sort((a, b) => factRank(a[0]) - factRank(b[0])).map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
       ${t.tip ? `<p class="topic-tip"><strong>Tip:</strong> ${t.tip}</p>` : ''}
     </section>`;
 }

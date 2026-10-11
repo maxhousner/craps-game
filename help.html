@@ -12,10 +12,13 @@
   <script type="module" src="js/help.js"></script>
 </head>
 <body class="help-page">
-  <header class="topbar">
-    <a class="brand" href="./"><span class="brand-die" aria-hidden="true"></span><span>Craps Guide</span></a>
-    <a class="sim-link" href="simulate.html">Simulator</a>
-    <a class="back-btn" href="./">← Back to the table</a>
+  <header class="topbar" id="top">
+    <a class="brand" href="./"><span class="brand-die" aria-hidden="true"></span><span class="brand-name">Craps</span></a>
+    <nav class="top-links" aria-label="Pages">
+      <a href="./">Table</a>
+      <a href="simulate.html">Simulator</a>
+      <a href="help.html" aria-current="page">Guide</a>
+    </nav>
   </header>
 
   <div class="help-layout">
@@ -51,18 +54,29 @@
 
       <section class="help-section" id="using">
         <h2>Using this game</h2>
+        <h3>Placing bets</h3>
         <ul class="plain">
           <li><strong>Bet:</strong> pick a chip in the rack ($1 to $1,000), then tap a spot. Tap again to add another chip. Stack different chips to make any amount.</li>
           <li><strong>More options:</strong> long-press a spot (phone) or right-click it (computer) to buy, lay or put a number, turn bets on or off, take them down, or open <em>What's this?</em> for help on that spot.</li>
-          <li><strong>My Bets</strong> lists every bet with what it wins if it hits, plus <kbd>+</kbd> <kbd>−</kbd> <kbd>On/Off</kbd> <kbd>✕</kbd> buttons. On a phone it's a drawer under the table, next to <em>Center Props</em>.</li>
           <li><strong>Red outline:</strong> that bet has to be fixed before you can roll (below the minimum, or not in <a href="#proper-units">proper units</a>). Tap <em>Fix</em>. An <strong>amber</strong> outline is only a hint.</li>
           <li><strong>Undo</strong> takes back anything since the last roll. <strong>Take down</strong> removes every bet that's allowed to come down.</li>
-          <li><strong>Keyboard:</strong> <kbd>Space</kbd> rolls, <kbd>1</kbd>–<kbd>6</kbd> pick a chip, <kbd>⌘/Ctrl</kbd>+<kbd>Z</kbd> undoes.</li>
-          <li><strong>Practice a specific situation:</strong> open the game with <code>?dev</code> at the end of the address (<a href="./?dev">craps-game/?dev</a>) and a <em>Force next roll</em> picker appears under the chip rack. Pick both dice and every roll uses them until you set them back to "?". It's handy for checking exactly what happens to your bets on, say, a hard 8 or a seven-out. Forced rolls count in your stats like any other roll.</li>
-          <li><strong>Settings</strong> (gear icon) holds the <a href="#house-rules">house rules</a>, fast roll, and a bankroll reset. Your bankroll, bets and stats are saved in this browser.</li>
-          <li><strong>Autoplay</strong> (▶ in the header) bets and rolls a strategy for you on the table, at the speed you pick. Pause or stop any time; <kbd>Space</kbd> pauses.</li>
-          <li><strong><a href="simulate.html">Simulator</a>:</strong> runs strategies through thousands of sessions on the same dice and shows average results, the spread of outcomes, the chance to finish ahead, how often the bankroll runs out, and roll-by-roll replays. Build your own strategies there, with presses and progressions, and they'll show up in Autoplay too.</li>
         </ul>
+        <h3>Around the table</h3>
+        <ul class="plain">
+          <li><strong>The bar above the table</strong> shows the last roll and the stickman's call, your recent rolls, and your bankroll, money on the table, session result and the point.</li>
+          <li><strong>My Bets</strong> lists every bet with what it wins if it hits, plus <kbd>+</kbd> <kbd>−</kbd> <kbd>On/Off</kbd> <kbd>✕</kbd> buttons. On a computer it's in the right-hand column under your session stats. On a phone, tap <em>My Bets</em> under the table.</li>
+          <li><strong>Center action</strong> (the one-roll and hardway bets) sits in a felt strip under the table. <em>Hide</em> folds it away, and the bar still shows how much you have bet there. On a phone, tap <em>Center Props</em> under the table.</li>
+          <li><strong>Session stats</strong> track your profit, rolls, shooters, points made and how often each number has rolled compared with the odds.</li>
+        </ul>
+        <h3>Tools</h3>
+        <ul class="plain">
+          <li><strong>Settings</strong> (the gear, top right) holds the <a href="#house-rules">house rules</a>, fast roll, and a bankroll reset. Your bankroll, bets and stats are saved in this browser.</li>
+          <li><strong>Autoplay</strong> (the button next to your bankroll) bets and rolls a strategy for you on the table, at the speed you pick. Pause or stop any time; <kbd>Space</kbd> pauses.</li>
+          <li><strong>Simulator</strong> runs strategies through thousands of sessions. See <a href="#simulator">Using the simulator</a>.</li>
+          <li><strong>Keyboard:</strong> <kbd>Space</kbd> rolls, <kbd>1</kbd>–<kbd>6</kbd> pick a chip, <kbd>⌘/Ctrl</kbd>+<kbd>Z</kbd> undoes.</li>
+        </ul>
+        <h3>Practice mode</h3>
+        <p>Open the game with <code>?dev</code> at the end of the address (<a href="./?dev">craps-game/?dev</a>) and a <em>Force next roll</em> picker appears under the chip rack. Pick both dice and every roll uses them until you set them back to "?". It's handy for checking exactly what happens to your bets on, say, a hard 8 or a seven-out. Forced rolls count in your stats like any other roll.</p>
       </section>
 
       <section class="help-section" id="map">
@@ -70,7 +84,10 @@
         <p>Tap or click any spot to jump to its explanation.</p>
         <div class="help-map">
           <div class="felt" id="map-felt"></div>
-          <div class="props" id="map-props"></div>
+          <div class="center">
+            <div class="center-bar">Center action &amp; side bets</div>
+            <div class="props" id="map-props"></div>
+          </div>
         </div>
       </section>
 
@@ -124,6 +141,43 @@
         <p class="note">Vegas defaults: vig charged on wins, field 12 pays 3 to 1, props pay "to 1". These figures are checked exactly by this game's test suite.</p>
       </section>
 
+      <section class="help-section" id="smart-play">
+        <h2>Smart play</h2>
+        <p>No strategy beats the house edge over time: every roll is independent, and the dice don't remember what came before. What you control is <strong>which bets you make</strong> and <strong>how much you put in action</strong>. These habits keep the cost of playing low.</p>
+        <ul class="plain">
+          <li><strong>Build around the line.</strong> Bet the Pass Line (1.41%) or Don't Pass (1.36%), then take <a href="#odds">odds</a> as soon as a point is set. Odds have no house edge, so the more of your money is in odds, the lower your overall edge: about 0.37% on the Pass Line with 3-4-5x odds.</li>
+          <li><strong>Use come bets for more numbers.</strong> They work like the Pass Line, each with its own odds, so they keep the edge low while giving you more action.</li>
+          <li><strong>If you place numbers, place the 6 and 8.</strong> Place 6 or 8 costs 1.52% (bet in $6 units). Place 5 or 9 costs 4%, and Place 4 or 10 costs 6.67%. Buying the 4 or 10 instead costs 1.67% when the vig is charged only on wins.</li>
+          <li><strong>Skip Big 6 and Big 8.</strong> They win on exactly the same rolls as Place 6 and 8 but pay even money, so they cost 9.09% instead of 1.52%.</li>
+          <li><strong>Treat center action as entertainment.</strong> Hardways and one-roll bets cost 9% to 17% (Any Seven is the worst at 16.67%), and the Fire Bet 20.76%. A small one now and then is fine; making them every roll adds up fast.</li>
+          <li><strong>Watch your total action, not only the edge.</strong> On average you lose the house edge times everything you bet. Spreading $50 across the table costs about five times as much as $10 on the Pass Line, even when the edges are similar.</li>
+          <li><strong>Betting systems don't change the edge.</strong> Pressing after wins or raising after losses changes how your results swing, not the average. Test a system in the <a href="#simulator">simulator</a> before trusting it.</li>
+          <li><strong>Size your bankroll for the swings.</strong> Even low-edge play has long losing streaks. Set a session bankroll and a loss limit, and check the simulator's <em>Worst drop</em> and <em>Ran out of money</em> figures to see whether your bankroll can ride out a normal bad night.</li>
+        </ul>
+      </section>
+
+      <section class="help-section" id="simulator">
+        <h2>Using the simulator</h2>
+        <p>The <a href="simulate.html">simulator</a> plays strategies through thousands of sessions in a few seconds, so you see the whole range of results a strategy produces instead of one lucky or unlucky night.</p>
+        <h3>Setting it up</h3>
+        <ul class="plain">
+          <li><strong>Strategies:</strong> add up to 4 to compare, from the popular presets or your own. <em>Build your own</em> opens the strategy builder, where you pick the bets, when they go up, and any presses or progressions. Strategies you save also show up in Autoplay.</li>
+          <li><strong>Session:</strong> a starting bankroll, a session length (rolls, shooters, or hours at about 100 rolls each), and optional amounts to stop at when you're up or down.</li>
+          <li><strong>Sessions to simulate:</strong> 1,000 for a quick look, up to 50,000 for the most precise averages.</li>
+          <li><strong>Dice seed:</strong> every strategy gets exactly the same dice, session by session, so any difference comes from the strategy, not luck. The same seed always gives the same results; <em>New dice</em> picks a fresh set.</li>
+          <li><strong>House rules</strong> start from your table's settings, and you can change them for a run.</li>
+        </ul>
+        <h3>Reading the results</h3>
+        <ul class="plain">
+          <li><strong>Average result</strong> is what a strategy wins or loses per session in the long run. <strong>Median</strong> is the typical session.</li>
+          <li><strong>Middle 50% / 90%</strong> show the swings to expect, and <strong>Chance to finish ahead</strong> is how often a session ends up.</li>
+          <li><strong>House edge you paid</strong> is total lost divided by total bet. <strong>Ran out of money</strong> is how often the bankroll couldn't cover the next bet.</li>
+          <li>A ★ marks the best strategy on each row.</li>
+          <li>The charts show where sessions ended, how the bankroll moved during a session, and how results are spread. <strong>Replay a session</strong> steps through any one session roll by roll, and the CSV buttons export everything.</li>
+        </ul>
+        <p class="note">Open <em>What these numbers mean</em> under the results for a definition of every figure.</p>
+      </section>
+
       <section class="help-section" id="house-rules">
         <h2>House rules (Settings)</h2>
         <p>Casinos vary, so you can set these to match the one you play. House rules can only change when no bets are on the table.</p>
@@ -143,36 +197,37 @@
       <section class="help-section" id="glossary">
         <h2>Glossary</h2>
         <dl class="glossary">
-          <div><dt>Bar</dt><dd>The number that's a push for don't bets on their first roll (usually 12).</dd></div>
-          <div><dt>Breakage</dt><dd>Rounding a payout down to the dollar when a bet isn't in proper units.</dd></div>
-          <div><dt>Center action / props</dt><dd>The one-roll and hardway bets in the middle of the table.</dd></div>
+          <div><dt><a href="#dont-pass">Bar</a></dt><dd>The number that's a push for don't bets on their first roll (usually 12).</dd></div>
+          <div><dt><a href="#proper-units">Breakage</a></dt><dd>Rounding a payout down to the dollar when a bet isn't in proper units.</dd></div>
+          <div><dt><a href="#center-bets">Center action / props</a></dt><dd>The one-roll and hardway bets in the middle of the table.</dd></div>
           <div><dt>Collect / same bet</dt><dd>Take your winnings and leave the bet as it is.</dd></div>
-          <div><dt>Come-out roll</dt><dd>The first roll of a round, when no point is set (puck OFF).</dd></div>
-          <div><dt>Contract bet</dt><dd>A bet you can't take down: Pass Line and Come bets once they have a point.</dd></div>
-          <div><dt>Craps</dt><dd>A 2, 3 or 12. On the come-out it loses for the Pass Line.</dd></div>
-          <div><dt>Dark side / wrong bettor</dt><dd>Betting the don't side, against the shooter. "Right" bettors play pass and come.</dd></div>
-          <div><dt>Easy / hard</dt><dd>A 4, 6, 8 or 10 rolled without a pair (easy) or as a pair (hard).</dd></div>
-          <div><dt>Hedge</dt><dd>A bet that protects another, like Any Craps to cover a come-out Pass Line bet.</dd></div>
-          <div><dt>Hop</dt><dd>A one-roll bet on an exact dice combination.</dd></div>
-          <div><dt>Inside / across</dt><dd>Place bets on 5, 6, 8, 9 (inside) or on all six numbers (across).</dd></div>
-          <div><dt>Natural</dt><dd>A 7 or 11 on the come-out roll.</dd></div>
-          <div><dt>Odds</dt><dd>The zero-edge bet you add behind a line bet once it has a point.</dd></div>
-          <div><dt>Off / working</dt><dd>Whether a bet is in action on the next roll.</dd></div>
+          <div><dt><a href="#basics">Come-out roll</a></dt><dd>The first roll of a round, when no point is set (puck OFF).</dd></div>
+          <div><dt><a href="#working">Contract bet</a></dt><dd>A bet you can't take down: Pass Line and Come bets once they have a point.</dd></div>
+          <div><dt><a href="#basics">Craps</a></dt><dd>A 2, 3 or 12. On the come-out it loses for the Pass Line.</dd></div>
+          <div><dt><a href="#dont-pass">Dark side / wrong bettor</a></dt><dd>Betting the don't side, against the shooter. "Right" bettors play pass and come.</dd></div>
+          <div><dt><a href="#hardways">Easy / hard</a></dt><dd>A 4, 6, 8 or 10 rolled without a pair (easy) or as a pair (hard).</dd></div>
+          <div><dt><a href="#any-craps">Hedge</a></dt><dd>A bet that protects another, like Any Craps to cover a come-out Pass Line bet.</dd></div>
+          <div><dt><a href="#hop">Hop</a></dt><dd>A one-roll bet on an exact dice combination.</dd></div>
+          <div><dt><a href="#place">Inside / across</a></dt><dd>Place bets on 5, 6, 8, 9 (inside) or on all six numbers (across).</dd></div>
+          <div><dt><a href="#basics">Natural</a></dt><dd>A 7 or 11 on the come-out roll.</dd></div>
+          <div><dt><a href="#odds">Odds</a></dt><dd>The zero-edge bet you add behind a line bet once it has a point.</dd></div>
+          <div><dt><a href="#working">Off / working</a></dt><dd>Whether a bet is in action on the next roll.</dd></div>
           <div><dt>Parlay</dt><dd>Letting a bet ride with its winnings added.</dd></div>
-          <div><dt>Point</dt><dd>The 4, 5, 6, 8, 9 or 10 set on the come-out, which the shooter needs to roll again before a 7.</dd></div>
-          <div><dt>Press</dt><dd>Adding winnings to a bet to make it bigger, usually doubling it: "press my 6."</dd></div>
-          <div><dt>Proper units</dt><dd>Bet sizes that pay out in whole dollars, like $6 on the 6 or 8.</dd></div>
-          <div><dt>Puck</dt><dd>The ON/OFF marker showing whether a point is set and which number it is.</dd></div>
+          <div><dt><a href="#basics">Point</a></dt><dd>The 4, 5, 6, 8, 9 or 10 set on the come-out, which the shooter needs to roll again before a 7.</dd></div>
+          <div><dt><a href="#smart-play">Press</a></dt><dd>Adding winnings to a bet to make it bigger, usually doubling it: "press my 6."</dd></div>
+          <div><dt><a href="#proper-units">Proper units</a></dt><dd>Bet sizes that pay out in whole dollars, like $6 on the 6 or 8.</dd></div>
+          <div><dt><a href="#basics">Puck</a></dt><dd>The ON/OFF marker showing whether a point is set and which number it is.</dd></div>
           <div><dt>Regress</dt><dd>Lowering a bet after it wins to lock in profit, like dropping a $12 Place 6 to $6.</dd></div>
-          <div><dt>Seven out</dt><dd>A 7 after the point is set. The round ends and the dice pass to the next shooter.</dd></div>
+          <div><dt><a href="#basics">Seven out</a></dt><dd>A 7 after the point is set. The round ends and the dice pass to the next shooter.</dd></div>
           <div><dt>Shooter</dt><dd>The player rolling the dice.</dd></div>
           <div><dt>Stickman</dt><dd>The dealer who calls each roll and handles the center bets.</dd></div>
-          <div><dt>True odds</dt><dd>A payout that exactly matches the chance of winning, so there's no house edge.</dd></div>
-          <div><dt>Vig (vigorish)</dt><dd>The 5% commission on buy and lay bets.</dd></div>
-          <div><dt>Yo</dt><dd>The 11, called "yo-leven" so it isn't confused with "seven".</dd></div>
+          <div><dt><a href="#odds">True odds</a></dt><dd>A payout that exactly matches the chance of winning, so there's no house edge.</dd></div>
+          <div><dt><a href="#buy">Vig (vigorish)</a></dt><dd>The 5% commission on buy and lay bets.</dd></div>
+          <div><dt><a href="#prop-numbers">Yo</a></dt><dd>The 11, called "yo-leven" so it isn't confused with "seven".</dd></div>
         </dl>
       </section>
     </article>
   </div>
+  <a class="to-top" id="to-top" href="#top" hidden><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M6 15l6-6 6 6"/></svg>Back to top</a>
 </body>
 </html>

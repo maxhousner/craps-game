@@ -2,6 +2,7 @@
 import { DEFAULT_RULES } from './engine/rules.js';
 import { buildFelt, buildProps } from './ui/table-view.js';
 import { SECTIONS, TOPICS, topic, topicFor, topicHTML } from './help-content.js';
+import { initToTop } from './ui/to-top.js';
 
 // Use the player's saved house rules so the map matches their table.
 function savedRules() {
@@ -42,12 +43,16 @@ const EDGES = [
   ['Fire Bet', 20.76, 'fire'],
 ];
 
+// A small copy of the table under each bet's summary, with that bet's spots lit. Filled in by renderMiniMaps.
+const miniMap = (id) => `<div class="mini-map" data-topic="${id}" inert aria-hidden="true"></div>`;
+const spotTopic = (spot) => topicFor(spot.dataset.key ?? spot.dataset.odds, !!spot.dataset.odds);
+
 function renderGuide() {
   document.getElementById('bet-guide').innerHTML = SECTIONS.map((s) => `
     <section class="help-section" id="${s.id}">
       <h2>${s.title}</h2>
       <p>${s.intro}</p>
-      ${TOPICS.filter((t) => t.section === s.id).map((t) => topicHTML(t, { anchor: true })).join('')}
+      ${TOPICS.filter((t) => t.section === s.id).map((t) => topicHTML(t, { anchor: true, extra: miniMap(t.id) })).join('')}
     </section>`).join('');
 }
 
@@ -67,12 +72,33 @@ function renderMap() {
   buildFelt(document.getElementById('map-felt'), rules);
   buildProps(document.getElementById('map-props'), rules);
   document.querySelectorAll('.help-map .spot').forEach((spot) => {
-    const id = topicFor(spot.dataset.key ?? spot.dataset.odds, !!spot.dataset.odds);
-    spot.title = topic(id).title;
+    spot.title = topic(spotTopic(spot)).title;
   });
   document.querySelector('.help-map').addEventListener('click', (e) => {
     const spot = e.target.closest('.spot');
-    if (spot) location.hash = topicFor(spot.dataset.key ?? spot.dataset.odds, !!spot.dataset.odds);
+    if (spot) location.hash = spotTopic(spot);
+  });
+}
+
+function renderMiniMaps() {
+  const sources = [document.getElementById('map-felt'), document.getElementById('map-props')];
+  document.querySelectorAll('.mini-map').forEach((mini) => {
+    const id = mini.dataset.topic;
+    const source = sources.find((el) => [...el.querySelectorAll('.spot')].some((s) => spotTopic(s) === id));
+    if (!source) return mini.remove(); // e.g. put bets, which have no spot of their own
+    const copy = source.cloneNode(true);
+    copy.removeAttribute('id');
+    copy.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+    copy.querySelectorAll('.spot').forEach((s) => s.classList.toggle('lit', spotTopic(s) === id));
+    copy.querySelectorAll('details').forEach((d) => { d.open = id === 'hop'; });
+    if (source.id === 'map-props') {
+      const strip = document.createElement('div');
+      strip.className = 'center';
+      strip.append(copy);
+      mini.append(strip);
+    } else {
+      mini.append(copy);
+    }
   });
 }
 
@@ -87,9 +113,42 @@ function renderToc() {
   document.getElementById('toc').innerHTML = `<ol>${items.join('')}</ol>`;
 }
 
+// Light up the contents entry for the part of the guide on screen.
+function trackPosition() {
+  const toc = document.getElementById('toc');
+  const wide = matchMedia('(min-width: 960px)');
+  const links = new Map([...toc.querySelectorAll('a')].map((a) => [a.hash.slice(1), a]));
+  const targets = [...document.querySelectorAll('.guide .help-section, .guide .topic[id]')].filter((el) => links.has(el.id));
+  let lit = [];
+  let queued = false;
+  const update = () => {
+    queued = false;
+    let here = null;
+    for (const el of targets) {
+      if (el.getBoundingClientRect().top > 140) break;
+      here = el;
+    }
+    const next = [here?.closest('.help-section'), here].filter((el, i, all) => el && all.indexOf(el) === i).map((el) => links.get(el.id));
+    if (next.length !== lit.length || next.some((a, i) => a !== lit[i])) {
+      lit.forEach((a) => a.removeAttribute('aria-current'));
+      next.forEach((a) => a.setAttribute('aria-current', 'location'));
+      if (wide.matches && next.length) next.at(-1).scrollIntoView({ block: 'nearest' });
+      lit = next;
+    }
+  };
+  addEventListener('scroll', () => {
+    if (!queued) requestAnimationFrame(update);
+    queued = true;
+  }, { passive: true });
+  update();
+}
+
 renderGuide();
 renderEdges();
 renderMap();
+renderMiniMaps();
 renderToc();
+trackPosition();
+initToTop(document.getElementById('to-top'));
 // The bet sections were added after load, so jump to a linked section now that it exists.
 if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();

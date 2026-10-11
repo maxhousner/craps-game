@@ -11,6 +11,7 @@ import { PRESETS } from './sim/presets.js';
 import { loadLibrary, saveToLibrary, removeFromLibrary, newId, isPreset } from './sim/library.js';
 import { runSession, summarize, bands, notableSessions, sessionSeed, horizon } from './sim/simulate.js';
 import { openEditor } from './sim/editor.js';
+import { initToTop } from './ui/to-top.js';
 
 const SIM_KEY = 'craps-game:sim';
 // Validated dark categorical slots (dataviz palette), checked against the panel color.
@@ -427,3 +428,4 @@ new ResizeObserver(() => {
 
 renderLineup();
 renderSettings();
+initToTop($('to-top'));
