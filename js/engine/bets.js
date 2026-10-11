@@ -370,7 +370,14 @@ export const BET_TYPES = Object.fromEntries(
 );
 
 // 'place:6' → { type: 'place', number: 6 }; 'hop:1-4' → { type: 'hop', number: null, dice: [1, 4] }
+// Results are cached (the simulator parses the same few keys every roll); treat them as read-only.
+const parsed = new Map();
 export function parseKey(key) {
+  if (!parsed.has(key)) parsed.set(key, parseKeyUncached(key));
+  return parsed.get(key);
+}
+
+function parseKeyUncached(key) {
   const [type, arg] = String(key).split(':');
   const def = BET_TYPES[type];
   if (!def) return null;

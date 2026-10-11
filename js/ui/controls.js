@@ -64,11 +64,12 @@ export function stickmanCall({ d1, d2, total, pointBefore }, rules) {
   return name;
 }
 
-export function resultsText(results) {
+export function resultsText(results, table) {
   return results.map((r) => {
-    if (r.outcome === 'move') return `${r.label.replace(/ \d+$/, '')} → ${r.to}`;
-    if (r.outcome === 'push') return `${r.label} push`;
-    return `${r.label} ${r.outcome === 'win' ? '+' : '−'}${money(r.outcome === 'win' ? r.win : r.lost)}`;
+    if (r.outcome === 'move') return `${table.label(r.from)} → ${r.to}`;
+    const label = table.label(r.key);
+    if (r.outcome === 'push') return `${label} push`;
+    return `${label} ${r.outcome === 'win' ? '+' : '−'}${money(r.outcome === 'win' ? r.win : r.lost)}`;
   }).join(' · ');
 }
 

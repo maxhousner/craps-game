@@ -8,6 +8,9 @@ import {
 } from './ui/controls.js';
 import { initSettings } from './ui/settings.js';
 import { newStats, recordRoll, renderStats, renderHistory } from './ui/stats.js';
+import { initAutoplay } from './ui/autoplay.js';
+import { createRunner } from './sim/strategy.js';
+import { esc } from './ui/html.js';
 
 const SAVE_KEY = 'craps-game:v1';
 const $ = (id) => document.getElementById(id);
@@ -16,6 +19,8 @@ let table, stats, history, prefs, chip, lastRoll;
 let undoStack = []; // table snapshots taken before each action since the last roll
 let rolling = false;
 let menuSpot = null; // { key } or { number } while the spot menu is open
+let auto = null; // autoplay: { strategy, runner, speed, limit, rolls, paused }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function load() {
   try {
@@ -89,6 +94,7 @@ function renderStatus() {
 // Run one table action; keep an undo snapshot if it worked, explain if it didn't.
 function act(fn) {
   if (rolling) return;
+  if (auto && !auto.paused) return toast('Pause autoplay to change bets.');
   const snap = table.snapshot();
   const res = fn();
   if (res.ok) {
@@ -142,11 +148,12 @@ function forcedDice() {
   return a && b ? [a, b] : null;
 }
 
-async function roll() {
-  if (rolling) return;
+// Returns the roll result, or null if the roll didn't happen. `fast` skips the dice animation.
+async function roll(fast = false) {
+  if (rolling) return null;
   if (!table.canRoll()) {
     toast('Fix the flagged bets before rolling.');
-    return;
+    return null;
   }
   rolling = true;
   $('dice').classList.remove('idle');
@@ -154,19 +161,74 @@ async function roll() {
   closeSheets();
   render();
   const [d1, d2] = forcedDice() ?? cryptoRoll();
-  await animateDice($('dice'), d1, d2, prefs.fastRoll);
+  await animateDice($('dice'), d1, d2, prefs.fastRoll || fast);
   const res = table.roll(d1, d2);
   undoStack = [];
   recordRoll(stats, res);
   history.unshift({ d1, d2, total: res.total, sevenOut: res.sevenOut, pointMade: res.pointMade, pointSet: res.pointSet });
   history.length = Math.min(history.length, 60);
-  lastRoll = { d1, d2, call: stickmanCall(res, table.rules), net: res.net, detail: resultsText(res.results) };
+  lastRoll = { d1, d2, call: stickmanCall(res, table.rules), net: res.net, detail: resultsText(res.results, table) };
   rolling = false;
   save();
   render();
   renderStatus();
   showMarkers(res.results);
   flashRoll(res.total);
+  return res;
+}
+
+// ---------- Autoplay: a strategy bets and rolls on this table ----------
+function renderAutoBar() {
+  document.body.classList.toggle('autoplaying', !!auto);
+  if (!auto) return;
+  $('auto-status').innerHTML = `<b>${esc(auto.strategy.name)}</b> · roll ${auto.rolls}${auto.limit ? ` of ${auto.limit}` : ''}${auto.paused ? ' · paused' : ''}`;
+  $('auto-pause').textContent = auto.paused ? 'Resume' : 'Pause';
+}
+
+function startAuto(strategy, speed, limit) {
+  auto = { strategy, runner: createRunner(strategy), speed, limit, rolls: 0, paused: false };
+  closeMenu();
+  closeSheets();
+  renderAutoBar();
+  autoLoop();
+}
+
+function stopAuto(message) {
+  auto = null;
+  renderAutoBar();
+  render();
+  if (message) toast(message);
+}
+
+function togglePause() {
+  if (!auto) return;
+  auto.paused = !auto.paused;
+  renderAutoBar();
+  if (!auto.paused) autoLoop();
+}
+
+async function autoLoop() {
+  const me = auto;
+  while (auto === me && !me.paused) {
+    if (rolling) {
+      await sleep(50);
+      continue;
+    }
+    const { short } = me.runner.decide(table);
+    save();
+    render();
+    if (short && Object.keys(table.bets).length === 0) return stopAuto('Autoplay stopped: not enough bankroll for this strategy.');
+    if (!table.canRoll()) return stopAuto('Autoplay stopped. Fix the flagged bets, then start again.');
+    const res = await roll(me.speed.fast);
+    if (auto !== me) return;
+    if (res) {
+      me.runner.record(res, table);
+      me.rolls++;
+    }
+    renderAutoBar();
+    if (me.limit && me.rolls >= me.limit) return stopAuto(`Autoplay finished ${me.rolls} rolls.`);
+    await sleep(me.speed.delay);
+  }
 }
 
 // Spot menu (long-press / right-click).
@@ -245,7 +307,9 @@ function wireEvents() {
     openMenu(spot);
   });
 
-  $('roll').addEventListener('click', roll);
+  $('roll').addEventListener('click', () => roll());
+  $('auto-pause').addEventListener('click', togglePause);
+  $('auto-stop').addEventListener('click', () => stopAuto(auto ? `Autoplay stopped after ${auto.rolls} rolls.` : ''));
   $('undo').addEventListener('click', undo);
   $('take-down').addEventListener('click', takeDownAll);
 
@@ -255,7 +319,7 @@ function wireEvents() {
     if (typing(e)) return;
     if (e.code === 'Space') {
       e.preventDefault();
-      if (!e.repeat) roll();
+      if (!e.repeat) auto ? togglePause() : roll();
     } else if (e.key >= '1' && e.key <= '6' && !e.metaKey && !e.ctrlKey) {
       chip = CHIP_VALUES[Number(e.key) - 1];
       save();
@@ -292,6 +356,7 @@ initDev();
 const openSettings = initSettings($('settings'), {
   state: () => ({ rules: table.rules, prefs, hasBets: Object.keys(table.bets).length > 0 }),
   setRules(patch) {
+    if (auto) stopAuto();
     const res = table.setRules(patch);
     if (!res.ok) return toast(res.error);
     undoStack = [];
@@ -304,6 +369,7 @@ const openSettings = initSettings($('settings'), {
     save();
   },
   reset(startingBankroll) {
+    if (auto) stopAuto();
     table = new CrapsTable({ ...table.rules, startingBankroll });
     stats = newStats(table.bankroll);
     history = [];
@@ -318,5 +384,6 @@ const openSettings = initSettings($('settings'), {
   },
 });
 $('open-settings').addEventListener('click', openSettings);
+$('open-autoplay').addEventListener('click', initAutoplay($('autoplay'), { onStart: startAuto }));
 render();
 renderStatus();

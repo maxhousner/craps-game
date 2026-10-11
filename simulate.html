@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Craps Simulator</title>
+  <meta name="description" content="Test craps strategies over thousands of simulated sessions with exact casino odds.">
+  <meta name="theme-color" content="#0d1013">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='6' fill='%23d32f2f'/%3E%3Cg fill='%23fff'%3E%3Ccircle cx='10' cy='10' r='2.6'/%3E%3Ccircle cx='16' cy='16' r='2.6'/%3E%3Ccircle cx='22' cy='22' r='2.6'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/sim.css">
+  <script type="module" src="js/sim-page.js"></script>
+</head>
+<body class="sim-page">
+  <header class="topbar">
+    <a class="brand" href="./"><span class="brand-die" aria-hidden="true"></span><span>Craps Simulator</span></a>
+    <nav class="top-links" aria-label="Pages">
+      <a href="./">Table</a>
+      <a href="help.html">Guide</a>
+    </nav>
+  </header>
+
+  <main class="sim-layout">
+    <section class="panel" aria-labelledby="lineup-title">
+      <div class="panel-head">
+        <h2 id="lineup-title">Strategies</h2>
+        <small>Compare up to 4. Every strategy rolls the same dice, session by session.</small>
+      </div>
+      <div id="lineup" class="lineup"></div>
+      <div class="add-row">
+        <select id="add-strategy" aria-label="Add a strategy"></select>
+        <button id="new-strategy" class="ghost">Build your own</button>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="settings-title">
+      <div class="panel-head"><h2 id="settings-title">Session</h2></div>
+      <form id="sim-settings" class="sim-form">
+        <label class="field"><span>Starting bankroll</span>
+          <input name="bankroll" type="number" min="1" step="1" inputmode="numeric"></label>
+        <div class="field"><span>Session length</span>
+          <div class="inline">
+            <input name="lengthValue" type="number" min="1" step="1" inputmode="numeric" aria-label="Session length">
+            <select name="lengthUnit" aria-label="Length unit">
+              <option value="rolls">rolls</option>
+              <option value="shooters">shooters</option>
+              <option value="hours">hours (about 100 rolls each)</option>
+            </select>
+          </div></div>
+        <label class="field"><span>Stop when up</span>
+          <input name="stopWin" type="number" min="0" step="1" inputmode="numeric" placeholder="No limit"></label>
+        <label class="field"><span>Stop when down</span>
+          <input name="stopLoss" type="number" min="0" step="1" inputmode="numeric" placeholder="No limit"></label>
+        <label class="field"><span>Sessions to simulate</span>
+          <select name="sessions">
+            <option value="1000">1,000 (quick look)</option>
+            <option value="5000">5,000</option>
+            <option value="10000">10,000</option>
+            <option value="25000">25,000</option>
+            <option value="50000">50,000 (most precise)</option>
+          </select></label>
+        <div class="field"><span>Dice seed</span>
+          <div class="inline">
+            <input name="seed" type="number" min="0" step="1" inputmode="numeric" aria-label="Dice seed">
+            <button type="button" id="new-seed" class="ghost">New dice</button>
+          </div></div>
+        <details class="rules">
+          <summary>House rules: <span id="rules-summary"></span></summary>
+          <div id="rules-fields" class="rules-fields"></div>
+        </details>
+      </form>
+      <button id="run" class="roll-btn run-btn">Run simulation</button>
+      <div id="progress" class="progress" hidden>
+        <div class="bar"><i></i></div>
+        <span id="progress-text"></span>
+      </div>
+    </section>
+
+    <section id="results" class="results" hidden aria-live="polite">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Results</h2>
+          <small id="results-meta"></small>
+          <div class="export">
+            <button id="csv-summary" class="ghost">Summary CSV</button>
+            <button id="csv-sessions" class="ghost">Sessions CSV</button>
+          </div>
+        </div>
+        <div id="summary-table" class="table-wrap"></div>
+        <details class="explain">
+          <summary>What these numbers mean</summary>
+          <dl class="facts">
+            <div><dt>Average result</dt><dd>Profit or loss per session on average, which is your expected result. The ± is the margin of error (95% confidence); more sessions shrink it.</dd></div>
+            <div><dt>Median session</dt><dd>Half the sessions did better than this and half did worse. When it's far from the average, a few big sessions are pulling the average.</dd></div>
+            <div><dt>Middle 50% / 90%</dt><dd>The range that the middle half (or 90%) of sessions ended in. This is the swing to expect on a normal night.</dd></div>
+            <div><dt>Total bet (action)</dt><dd>Everything you had riding on bets that won or lost during a session. More action means more exposure to the house edge.</dd></div>
+            <div><dt>House edge you paid</dt><dd>Total lost ÷ total action. Compare it with the <a href="help.html#house-edge">house-edge table</a> in the guide.</dd></div>
+            <div><dt>Worst drop</dt><dd>The biggest fall from a session's high point to a later low. Your bankroll has to survive swings this size.</dd></div>
+            <div><dt>Low point</dt><dd>How far down the session went at its worst moment, on average.</dd></div>
+            <div><dt>Ran out of money</dt><dd>Sessions that ended because the bankroll couldn't cover the strategy's next bet.</dd></div>
+          </dl>
+        </details>
+      </div>
+
+      <div class="panel">
+        <h3 class="chart-title">Session results</h3>
+        <p class="chart-sub">Where sessions ended, from the worst 5% to the best 5%.</p>
+        <div id="range-chart" class="chart"></div>
+      </div>
+
+      <div class="panel">
+        <h3 class="chart-title">Bankroll during a session</h3>
+        <p class="chart-sub">The line is the typical (median) session. The shaded band is where 80% of sessions were at each point.</p>
+        <div id="fan-chart" class="chart"></div>
+      </div>
+
+      <div class="panel">
+        <h3 class="chart-title">How results are spread</h3>
+        <p class="chart-sub">Share of sessions ending at each profit or loss. Bars right of the $0 line finished ahead.</p>
+        <div id="histograms" class="chart histograms"></div>
+      </div>
+
+      <div class="panel" id="replay-panel">
+        <h3 class="chart-title">Replay a session</h3>
+        <p class="chart-sub">Step through any simulated session roll by roll: every bet made and every result.</p>
+        <div class="replay-controls">
+          <select id="replay-strategy" aria-label="Strategy to replay"></select>
+          <div class="seg" role="group" aria-label="Pick a session">
+            <button data-pick="best">Best</button>
+            <button data-pick="median">Median</button>
+            <button data-pick="worst">Worst</button>
+            <button data-pick="random">Random</button>
+          </div>
+          <label class="inline">Session #<input id="replay-n" type="number" min="1" step="1" inputmode="numeric"></label>
+          <button id="replay-go" class="ghost">Show</button>
+        </div>
+        <p id="replay-summary" class="replay-summary"></p>
+        <div id="replay-log" class="table-wrap replay-log"></div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="editor" aria-label="Strategy builder"></dialog>
+  <div id="chart-tip" class="chart-tip" role="tooltip" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

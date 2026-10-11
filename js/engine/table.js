@@ -50,12 +50,40 @@ export class CrapsTable {
     return bet.working ?? this.def(bet).defaultWorking(this, bet);
   }
 
-  totalOnTable() {
-    return Object.values(this.bets).reduce((s, b) => s + b.amount + b.odds + b.vigPaid, 0);
+  // The bets as an array, kept in step by setBet/deleteBet (the simulator loops over them several
+  // times per roll, and Object.values on an object whose keys keep changing is slow).
+  betList() {
+    return (this.listCache ??= Object.values(this.bets));
   }
 
-  // Min / max / proper-unit info for a bet's flat amount.
+  setBet(key, bet) {
+    this.bets[key] = bet;
+    this.listCache?.push(bet);
+  }
+
+  deleteBet(key) {
+    const bet = this.bets[key];
+    delete this.bets[key];
+    const i = this.listCache ? this.listCache.indexOf(bet) : -1;
+    if (i >= 0) this.listCache.splice(i, 1);
+  }
+
+  totalOnTable() {
+    return this.betList().reduce((s, b) => s + b.amount + b.odds + b.vigPaid, 0);
+  }
+
+  // Min / max / proper-unit info for a bet's flat amount. Depends only on the rules and the bet's
+  // key, so it's cached (the simulator checks every bet before every roll).
   limits(bet) {
+    const key = bet.key ?? `${bet.type}:${bet.number}`;
+    const cached = this.limitsCache?.get(key);
+    if (cached && cached.rules === this.rules) return cached.value;
+    const value = this.computeLimits(bet);
+    (this.limitsCache ??= new Map()).set(key, { rules: this.rules, value });
+    return value;
+  }
+
+  computeLimits(bet) {
     const def = this.def(bet);
     const ratio = def.ratio?.(this.rules, bet) ?? null;
     const unit = ratio ? unitOf(ratio) : 1;
@@ -106,7 +134,7 @@ export class CrapsTable {
     bet.amount = newAmount;
     bet.fresh += amount;
     bet.vigPaid += vigDelta;
-    this.bets[key] = bet;
+    if (!this.bets[key]) this.setBet(key, bet);
     return ok();
   }
 
@@ -123,7 +151,7 @@ export class CrapsTable {
     const newAmount = bet.amount - take;
     if (newAmount === 0) {
       this.bankroll += bet.amount + bet.odds + bet.vigPaid;
-      delete this.bets[key];
+      this.deleteBet(key);
       return ok();
     }
     const vigRefund = bet.vigPaid - this.upfrontVig(bet, newAmount);
@@ -181,23 +209,31 @@ export class CrapsTable {
     return ok();
   }
 
-  // Problems with bets on the table. 'error' blocks the roll; 'warn' is a hint only.
-  issues() {
+  // Problems with bets on the table, without messages. Cheap enough to run before every roll.
+  problems() {
     const out = [];
-    for (const bet of Object.values(this.bets)) {
-      const label = this.label(bet);
+    for (const bet of this.betList()) {
       const L = this.limits(bet);
-      const add = (part, level, message) => out.push({ key: bet.key, part, level, message });
-      // A $5 Place 6 gets the proper-units hint rather than "minimum is $6".
-      if (bet.amount < L.baseMin) add('bet', 'error', `${label} minimum is ${money(L.min)}.`);
-      else if (bet.amount % L.multiple) add('bet', 'error', `${label} is bet in ${money(L.multiple)} units (one per number).`);
-      else if (bet.amount % L.unit) add('bet', ...this.improper(label, bet.amount, L.ratio));
-      const info = this.oddsInfo(bet);
-      if (info && bet.odds % info.unit) {
-        add('odds', ...this.improper(`${info.take ? 'Odds' : 'Lay odds'} on ${label}`, bet.odds, info.ratio));
-      }
+      // A $5 Place 6 is "improper" rather than "below the $6 minimum", so it gets the units hint.
+      if (bet.amount < L.baseMin) out.push({ bet, part: 'bet', kind: 'min', L });
+      else if (bet.amount % L.multiple) out.push({ bet, part: 'bet', kind: 'multiple', L });
+      else if (bet.amount % L.unit) out.push({ bet, part: 'bet', kind: 'improper', L });
+      const info = bet.odds ? this.oddsInfo(bet) : null;
+      if (info && bet.odds % info.unit) out.push({ bet, part: 'odds', kind: 'improper', info });
     }
     return out;
+  }
+
+  // Problems with plain-English messages. 'error' blocks the roll; 'warn' is a hint only.
+  issues() {
+    return this.problems().map(({ bet, part, kind, L, info }) => {
+      const label = this.label(bet);
+      const issue = (level, message) => ({ key: bet.key, part, level, message });
+      if (kind === 'min') return issue('error', `${label} minimum is ${money(L.min)}.`);
+      if (kind === 'multiple') return issue('error', `${label} is bet in ${money(L.multiple)} units (one per number).`);
+      if (part === 'odds') return issue(...this.improper(`${info.take ? 'Odds' : 'Lay odds'} on ${label}`, bet.odds, info.ratio));
+      return issue(...this.improper(label, bet.amount, L.ratio));
+    });
   }
 
   improper(label, amount, ratio) {
@@ -208,7 +244,7 @@ export class CrapsTable {
   }
 
   canRoll() {
-    return this.issues().every((i) => i.level !== 'error');
+    return this.problems().every((p) => p.kind === 'improper' && this.rules.allowImproper);
   }
 
   // Round a flagged bet (or its odds) to the nearest proper amount; remove it if nothing fits.
@@ -247,7 +283,7 @@ export class CrapsTable {
 
     const results = [];
     const moves = [];
-    for (const bet of Object.values(this.bets)) {
+    for (const bet of [...this.betList()]) {
       const def = this.def(bet);
       if (def.toggle === 'bet' && !this.isWorking(bet)) continue;
       const res = def.resolve(this, bet, dice, ctx);
@@ -257,20 +293,20 @@ export class CrapsTable {
         continue;
       }
       const r = {
-        key: bet.key, label: def.label(bet), outcome: res.outcome, stake: bet.amount + bet.odds,
+        key: bet.key, outcome: res.outcome, stake: bet.amount + bet.odds,
         win: res.win ?? 0, lost: res.lost ?? 0, returned: res.returned ?? 0,
       };
       this.bankroll += r.win + r.returned;
-      if (res.down) delete this.bets[bet.key];
+      if (res.down) this.deleteBet(bet.key);
       else if (res.clearOdds) bet.odds = 0;
       results.push(r);
     }
     // Moves happen after resolving, so an old come bet on the same number is paid first.
     for (const [bet, to] of moves) {
-      delete this.bets[bet.key];
+      this.deleteBet(bet.key);
       const moved = { ...bet, key: `${bet.type}:${to}`, number: to, odds: 0, working: null };
-      this.bets[moved.key] = moved;
-      results.push({ key: moved.key, from: bet.key, label: this.label(moved), outcome: 'move', to, win: 0, lost: 0, returned: 0 });
+      this.setBet(moved.key, moved);
+      results.push({ key: moved.key, from: bet.key, outcome: 'move', to, win: 0, lost: 0, returned: 0 });
     }
 
     this.rollCount++;
@@ -286,7 +322,7 @@ export class CrapsTable {
     }
     if (total === 7) this.atsNumbers = [];
     else if (!this.atsNumbers.includes(total)) this.atsNumbers.push(total);
-    for (const bet of Object.values(this.bets)) bet.fresh = 0;
+    for (const bet of this.betList()) bet.fresh = 0;
 
     return {
       d1, d2, total,

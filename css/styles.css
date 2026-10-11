@@ -64,6 +64,10 @@ small { color: var(--muted); font-weight: 400; }
 .meter span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 .meter strong { font-size: 17px; font-variant-numeric: tabular-nums; }
 .meter.point strong { color: var(--gold); }
+.top-link {
+  color: var(--text); text-decoration: none; font-weight: 700; font-size: 14px;
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel);
+}
 .icon-btn {
   display: inline-grid; place-items: center; width: 40px; height: 40px; flex: none;
   background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
@@ -412,6 +416,24 @@ small { color: var(--muted); font-weight: 400; }
 .dev { max-width: 1320px; margin: 8px auto 0; display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--amber); }
 .dev select { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px; }
 
+/* ---------- Autoplay ---------- */
+.auto-bar { display: none; align-items: center; gap: 8px; flex: 1; justify-content: flex-end; }
+.autoplaying .auto-bar { display: flex; }
+.autoplaying .dock-actions { display: none; }
+.auto-status { display: inline-flex; align-items: center; gap: 8px; margin-right: auto; min-width: 0; font-size: 14px; }
+.auto-status b { color: var(--gold); }
+.auto-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); flex: none; animation: pulse-dot 1.2s ease-in-out infinite alternate; }
+@keyframes pulse-dot { to { opacity: 0.3; } }
+.autoplaying #open-autoplay { color: var(--green); border-color: var(--green); }
+.auto-desc { background: var(--panel-2); border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+.auto-desc p { margin: 0 0 4px; color: var(--muted); }
+.auto-desc ul { margin: 0; padding-left: 18px; }
+.autoplay-form .note a { color: var(--gold); }
+.autoplay-form .editor-actions { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+.autoplay-form .editor-actions .spacer { flex: 1; }
+.autoplay-form .roll-btn { min-width: 120px; min-height: 44px; font-size: 15px; }
+#autoplay { width: min(520px, calc(100% - 24px)); }
+
 /* ---------- Spot menu, backdrop, toast, settings ---------- */
 .backdrop { position: fixed; inset: 0 0 var(--dock-h) 0; background: rgba(0, 0, 0, 0.5); z-index: 25; }
 .spot-menu {
@@ -487,6 +509,8 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
   body { font-size: 14px; }
   .topbar { gap: 8px; padding: 8px 16px 2px; }
   .brand-name, .hide-sm { display: none; }
+  .auto-bar { flex-wrap: wrap; }
+  .auto-status { width: 100%; }
   .meters { flex: 1; gap: 6px; margin-left: 0; }
   .meter { flex: 1; min-width: 0; padding: 3px 8px; }
   .meter span { font-size: 10px; }
@@ -585,8 +609,12 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 }
 
 /* Smallest phones (iPhone SE 1st gen and similar) */
+@media (max-width: 500px) {
+  .game-page .brand { display: none; }
+}
+
 @media (max-width: 380px) {
-  .brand { display: none; }
+  .meter.session { display: none; }
   .topbar, .meters { gap: 4px; }
   .icon-btn { width: 34px; height: 34px; }
   .meter { padding: 3px 6px; }

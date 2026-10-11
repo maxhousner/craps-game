@@ -3,7 +3,7 @@ import { ODDS_OPTIONS } from '../engine/rules.js';
 
 const ODDS_LABELS = { 1: '1x', 2: '2x', 3: '3x', 345: '3-4-5x (Vegas standard)', 5: '5x', 10: '10x', 20: '20x', 100: '100x' };
 
-const RULES = [
+export const RULES = [
   ['tableMin', 'Table minimum', [1, 5, 10, 15, 25, 50, 100].map((v) => [v, `$${v}`]), Number],
   ['tableMax', 'Table maximum', [1000, 2000, 5000, 10000, 25000].map((v) => [v, `$${v.toLocaleString('en-US')}`]), Number],
   ['oddsMultiple', 'Max odds', ODDS_OPTIONS.map((v) => [v, ODDS_LABELS[v]]), String],
