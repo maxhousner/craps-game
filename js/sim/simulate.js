@@ -5,7 +5,7 @@ import { CrapsTable } from '../engine/table.js';
 import { seededDice } from '../engine/dice.js';
 import { createRunner } from './strategy.js';
 
-export const ROLLS_PER_HOUR = 100; // a typical table pace
+const ROLLS_PER_HOUR = 100; // a typical table pace
 export const OUTCOMES = ['limit', 'stop-win', 'stop-loss', 'bust'];
 
 // Session i gets its own dice stream, so every strategy sees the same rolls in session i.
@@ -13,7 +13,21 @@ export function sessionSeed(seed, i) {
   return (seed ^ Math.imul(i + 1, 0x9e3779b1)) >>> 0;
 }
 
-export function rollLimit({ length }) {
+// Per-session results for one strategy. Workers fill a slice each; the page merges them into a full set.
+export function newResultArrays(sessions, checkpoints) {
+  return {
+    net: new Float64Array(sessions),
+    action: new Float64Array(sessions),
+    rolls: new Uint32Array(sessions),
+    maxDrawdown: new Float64Array(sessions),
+    low: new Float64Array(sessions),
+    peak: new Float64Array(sessions),
+    outcome: new Uint8Array(sessions),
+    paths: new Float32Array(sessions * checkpoints),
+  };
+}
+
+function rollLimit({ length }) {
   if (length.unit === 'rolls') return length.value;
   if (length.unit === 'hours') return Math.round(length.value * ROLLS_PER_HOUR);
   return Infinity;
@@ -23,14 +37,6 @@ export function rollLimit({ length }) {
 export function horizon(settings) {
   const limit = rollLimit(settings);
   return Number.isFinite(limit) ? limit : settings.length.value * 9;
-}
-
-function takeDownAll(table, log) {
-  for (const bet of [...table.betList()]) {
-    if (bet.odds) table.removeOdds(bet.key);
-    const n = Math.min(table.def(bet).removable(table, bet), bet.amount);
-    if (n > 0 && table.removeBet(bet.key, n).ok) log?.(`Take down ${table.label(bet.key)}`);
-  }
 }
 
 /**
@@ -72,7 +78,7 @@ export function runSession(strategy, settings, seed, { checkpoints = 0, log = fa
     const actions = log ? [] : null;
     const note = actions ? (a) => actions.push(a) : null;
     if (outcome) {
-      takeDownAll(table, note);
+      table.takeDownAll(note);
       if (table.betList().length === 0) break;
     } else if (runner.decide(table, note).short && table.betList().length === 0) {
       outcome = 'bust';

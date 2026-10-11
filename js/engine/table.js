@@ -4,15 +4,13 @@
 import { BET_TYPES, parseKey } from './bets.js';
 import {
   DEFAULT_RULES, POINTS, TRUE_ODDS, LAY_ODDS,
-  maxOdds, maxLay, unitOf, roundUpTo, pay, exactPay, ratioText,
+  maxOdds, maxLay, unitOf, roundUpTo, lcm, pay, exactPay, ratioText,
 } from './rules.js';
 
 const ok = () => ({ ok: true });
 const fail = (error) => ({ ok: false, error });
 export const money = (n) => `$${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
 const cents = (n) => `$${n.toFixed(2)}`;
-const gcd = (a, b) => (b ? gcd(b, a % b) : a);
-const lcm = (a, b) => (a * b) / gcd(a, b);
 
 export class CrapsTable {
   constructor(rules = {}, bankroll) {
@@ -197,6 +195,20 @@ export class CrapsTable {
     bet.odds -= take;
     this.bankroll += take;
     return ok();
+  }
+
+  // Take down everything that's allowed to come down. Returns whether anything did.
+  takeDownAll(log) {
+    let any = false;
+    for (const bet of [...this.betList()]) {
+      if (bet.odds && this.removeOdds(bet.key).ok) any = true;
+      const n = Math.min(this.def(bet).removable(this, bet), bet.amount);
+      if (n > 0 && this.removeBet(bet.key, n).ok) {
+        any = true;
+        log?.(`Take down ${this.label(bet.key)}`);
+      }
+    }
+    return any;
   }
 
   toggleWorking(key) {

@@ -41,7 +41,7 @@ const pass = {
       return null;
     }
     if (total === t.point) {
-      return { outcome: 'win', win: b.amount + pay(b.odds, TRUE_ODDS[t.point]), returned: b.odds, clearOdds: true };
+      return { outcome: 'win', win: this.hitWin(t, b), returned: b.odds, clearOdds: true };
     }
     return total === 7 ? lose(b) : null;
   },
@@ -63,7 +63,7 @@ const dontPass = {
       return null;
     }
     if (total === 7) {
-      return { outcome: 'win', win: b.amount + pay(b.odds, LAY_ODDS[t.point]), returned: b.odds, clearOdds: true };
+      return { outcome: 'win', win: this.hitWin(t, b), returned: b.odds, clearOdds: true };
     }
     return total === t.point ? lose(b) : null;
   },
@@ -121,7 +121,7 @@ const dontCome = {
       if (total === 7 || total === 11) return lose(b);
       return { outcome: 'move', to: total };
     }
-    if (total === 7) return winDown(b, b.amount + pay(b.odds, LAY_ODDS[b.number]));
+    if (total === 7) return winDown(b, this.hitWin(t, b));
     return total === b.number ? lose(b) : null;
   },
 };
@@ -137,7 +137,7 @@ const place = {
   conflicts: (b) => [`buy:${b.number}`],
   hitWin: (t, b) => pay(b.amount, PLACE_PAYS[b.number]),
   resolve(t, b, { total }) {
-    if (total === b.number) return win(pay(b.amount, PLACE_PAYS[b.number]));
+    if (total === b.number) return win(this.hitWin(t, b));
     return total === 7 ? lose(b) : null;
   },
 };
@@ -156,7 +156,7 @@ const buy = {
   upfrontVig: (r, b) => (r.buyVig === 'upfront' ? vig(b.amount) : 0),
   hitWin: (t, b) => pay(b.amount, TRUE_ODDS[b.number]) - vig(b.amount),
   resolve(t, b, { total }) {
-    if (total === b.number) return win(pay(b.amount, TRUE_ODDS[b.number]) - vig(b.amount));
+    if (total === b.number) return win(this.hitWin(t, b));
     return total === 7 ? lose(b) : null;
   },
 };
@@ -190,7 +190,7 @@ const big = {
   defaultWorking: always,
   hitWin: (t, b) => b.amount,
   resolve(t, b, { total }) {
-    if (total === b.number) return win(b.amount);
+    if (total === b.number) return win(this.hitWin(t, b));
     return total === 7 ? lose(b) : null;
   },
 };
@@ -203,7 +203,7 @@ const hard = {
   defaultWorking: pointOn,
   hitWin: (t, b) => pay(b.amount, HARD_PAYS[b.number]),
   resolve(t, b, { d1, d2, total }) {
-    if (total === b.number && d1 === d2) return win(pay(b.amount, HARD_PAYS[b.number]));
+    if (total === b.number && d1 === d2) return win(this.hitWin(t, b));
     return total === b.number || total === 7 ? lose(b) : null;
   },
 };
@@ -211,7 +211,6 @@ const hard = {
 // One-roll bets: net(rules, bet, dice) returns the win, 0 for a push, or null for a loss.
 function oneRoll(spec) {
   return {
-    oneRoll: true,
     ...spec,
     resolve(t, b, dice) {
       const w = spec.net(t.rules, b, dice);
@@ -319,7 +318,6 @@ const fire = {
   label: () => 'Fire Bet',
   pays: () => '4 pts 24 to 1 · 5 pts 249 to 1 · 6 pts 999 to 1',
   max: () => 5,
-  group: 'side',
   canPlace: (t) => (t.shooter.rolls === 0 && !pointOn(t) ? null : 'The Fire Bet can only be made before a new shooter\'s first roll.'),
   removable: (t, b) => (t.shooter.rolls === 0 ? b.amount : 0),
   locked: () => 'The Fire Bet can\'t come down once the shooter has rolled.',
@@ -337,7 +335,6 @@ function ats(kind, name) {
     label: () => name,
     pays: (r) => `${atsPays(r, kind)} to 1`,
     max: () => 25,
-    group: 'side',
     canPlace: (t) => (t.atsNumbers.length === 0 ? null : 'All/Tall/Small can only be bet after a 7, before any other number rolls.'),
     removable: (t, b) => (t.atsNumbers.length === 0 ? b.amount : 0),
     locked: () => 'All/Tall/Small can\'t come down once numbers have rolled.',

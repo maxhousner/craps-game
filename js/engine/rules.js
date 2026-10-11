@@ -53,6 +53,9 @@ export function roundUpTo(x, step) {
   return Math.ceil(x / step) * step;
 }
 
+const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+export const lcm = (a, b) => (a * b) / gcd(a, b);
+
 export function oddsMultiplier(rules, number) {
   if (rules.oddsMultiple === '345') return { 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3 }[number];
   return Number(rules.oddsMultiple);

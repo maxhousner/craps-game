@@ -3,15 +3,7 @@ import { DEFAULT_RULES } from './engine/rules.js';
 import { buildFelt, buildProps } from './ui/table-view.js';
 import { SECTIONS, TOPICS, topic, topicFor, topicHTML } from './help-content.js';
 import { initToTop } from './ui/to-top.js';
-
-// Use the player's saved house rules so the map matches their table.
-function savedRules() {
-  try {
-    return { ...DEFAULT_RULES, ...JSON.parse(localStorage.getItem('craps-game:v1'))?.table?.rules };
-  } catch {
-    return { ...DEFAULT_RULES };
-  }
-}
+import { savedRules } from './ui/settings.js';
 
 // [label, house edge %, topic id, optional display text]
 const EDGES = [
@@ -68,7 +60,7 @@ function renderEdges() {
 }
 
 function renderMap() {
-  const rules = savedRules();
+  const rules = { ...DEFAULT_RULES, ...savedRules() };
   buildFelt(document.getElementById('map-felt'), rules);
   buildProps(document.getElementById('map-props'), rules);
   document.querySelectorAll('.help-map .spot').forEach((spot) => {

@@ -1,6 +1,17 @@
 // Settings dialog: house rules (only with no bets on the table), preferences, and session reset.
 import { ODDS_OPTIONS } from '../engine/rules.js';
 
+export const SAVE_KEY = 'craps-game:v1'; // the game's saved table, stats and prefs
+
+// The house rules saved by the game, so the guide and simulator match the player's table. {} if none.
+export function savedRules() {
+  try {
+    return JSON.parse(localStorage.getItem(SAVE_KEY))?.table?.rules ?? {};
+  } catch {
+    return {};
+  }
+}
+
 const ODDS_LABELS = { 1: '1x', 2: '2x', 3: '3x', 345: '3-4-5x (Vegas standard)', 5: '5x', 10: '10x', 20: '20x', 100: '100x' };
 
 export const RULES = [

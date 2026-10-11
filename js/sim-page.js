@@ -1,15 +1,15 @@
 // Simulator page: pick strategies, run them in a Web Worker, show results, charts and replays.
 import { DEFAULT_RULES } from './engine/rules.js';
 import { CrapsTable, money } from './engine/table.js';
-import { RULES } from './ui/settings.js';
+import { RULES, savedRules } from './ui/settings.js';
 import { esc } from './ui/html.js';
 import { dieHTML } from './ui/table-view.js';
 import { resultsText, toast } from './ui/controls.js';
 import { rangeChart, fanChart, histograms, signed } from './ui/charts.js';
 import { describePlan, validateStrategy } from './sim/strategy.js';
 import { PRESETS } from './sim/presets.js';
-import { loadLibrary, saveToLibrary, removeFromLibrary, newId, isPreset } from './sim/library.js';
-import { runSession, summarize, bands, notableSessions, sessionSeed, horizon } from './sim/simulate.js';
+import { loadLibrary, saveToLibrary, removeFromLibrary, newId, isPreset, findStrategy } from './sim/library.js';
+import { runSession, summarize, bands, notableSessions, sessionSeed, horizon, newResultArrays, OUTCOMES } from './sim/simulate.js';
 import { openEditor } from './sim/editor.js';
 import { initToTop } from './ui/to-top.js';
 
@@ -22,14 +22,6 @@ const ENDED = { limit: 'played the full session', 'stop-win': 'hit the stop-win'
 const $ = (id) => document.getElementById(id);
 const randomSeed = () => Math.floor(Math.random() * 1e9);
 const pct = (x) => `${(x * 100).toFixed(1)}%`;
-
-function gameRules() {
-  try {
-    return JSON.parse(localStorage.getItem('craps-game:v1'))?.table?.rules ?? {};
-  } catch {
-    return {};
-  }
-}
 
 function loadState() {
   let saved = {};
@@ -45,7 +37,7 @@ function loadState() {
     settings: {
       bankroll: 1000, lengthUnit: 'rolls', lengthValue: 200, stopWin: 0, stopLoss: 0, sessions: 5000, seed: randomSeed(),
       ...saved.settings,
-      rules: { ...DEFAULT_RULES, ...gameRules(), ...saved.settings?.rules },
+      rules: { ...DEFAULT_RULES, ...savedRules(), ...saved.settings?.rules },
     },
   };
 }
@@ -202,11 +194,7 @@ function run() {
   const per = Math.ceil(job.sessions / cores);
   const slices = [];
   for (let start = 0; start < job.sessions; start += per) slices.push({ start, count: Math.min(per, job.sessions - start) });
-  const raw = job.strategies.map(() => ({
-    net: new Float64Array(job.sessions), action: new Float64Array(job.sessions), rolls: new Uint32Array(job.sessions),
-    maxDrawdown: new Float64Array(job.sessions), low: new Float64Array(job.sessions), peak: new Float64Array(job.sessions),
-    outcome: new Uint8Array(job.sessions), paths: new Float32Array(job.sessions * CHECKPOINTS),
-  }));
+  const raw = job.strategies.map(() => newResultArrays(job.sessions, CHECKPOINTS));
   const done = slices.map(() => 0);
   let finished = 0;
   const started = performance.now();
@@ -372,12 +360,11 @@ function summaryCsv() {
 }
 
 function sessionsCsv() {
-  const ended = ['limit', 'stop-win', 'stop-loss', 'bust'];
   const rows = [['Strategy', 'Session', 'Result', 'Rolls', 'Action', 'Low point', 'High point', 'Worst drop', 'Ended']];
   results.raw.forEach((raw, i) => {
     const name = results.strategies[i].name;
     for (let n = 0; n < results.sessions; n++) {
-      rows.push([name, n + 1, raw.net[n], raw.rolls[n], raw.action[n], raw.low[n], raw.peak[n], raw.maxDrawdown[n], ended[raw.outcome[n]]]);
+      rows.push([name, n + 1, raw.net[n], raw.rolls[n], raw.action[n], raw.low[n], raw.peak[n], raw.maxDrawdown[n], OUTCOMES[raw.outcome[n]]]);
     }
   });
   download('craps-sim-sessions.csv', rows);
@@ -396,7 +383,7 @@ $('lineup').addEventListener('click', (e) => {
 });
 $('add-strategy').addEventListener('change', (e) => {
   const id = e.target.value;
-  const s = [...PRESETS, ...loadLibrary()].find((x) => x.id === id);
+  const s = findStrategy(id);
   if (s && lineup.length < MAX_LINEUP) {
     lineup.push(structuredClone(s));
     saveState();

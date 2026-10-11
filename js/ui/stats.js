@@ -24,7 +24,8 @@ export function recordRoll(s, res) {
   s.worstRoll = Math.min(s.worstRoll, res.net);
 }
 
-const signed = (n) => (n > 0 ? `+${money(n)}` : n < 0 ? `−${money(-n)}` : money(0));
+export const signed = (n) => (n > 0 ? `+${money(n)}` : n < 0 ? `−${money(-n)}` : money(0));
+export const signClass = (n) => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
 
 export function renderStats(el, s, table) {
   const pl = table.bankroll + table.totalOnTable() - s.start;
@@ -43,7 +44,7 @@ export function renderStats(el, s, table) {
   el.innerHTML = `
     <h2>Session</h2>
     <dl class="stat-grid">
-      <div><dt>Profit / loss</dt><dd class="${pl > 0 ? 'pos' : pl < 0 ? 'neg' : ''}">${signed(pl)}</dd></div>
+      <div><dt>Profit / loss</dt><dd class="${signClass(pl)}">${signed(pl)}</dd></div>
       <div><dt>Rolls</dt><dd>${s.rolls}</dd></div>
       <div><dt>Shooters</dt><dd>${s.shooters}</dd></div>
       <div><dt>Points made</dt><dd>${s.pointsMade} / ${s.pointsSet} <small>${pct(s.pointsMade, s.pointsSet)}</small></dd></div>

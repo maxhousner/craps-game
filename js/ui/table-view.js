@@ -17,7 +17,7 @@ export function shortMoney(n) {
   return n >= 1000 ? `${+(n / 1000).toFixed(n % 1000 ? 1 : 0)}K` : String(n);
 }
 
-export function chipHTML(amount, cls = '') {
+function chipHTML(amount, cls = '') {
   return `<span class="chip ${chipColor(amount)} ${cls}" aria-hidden="true">${shortMoney(amount)}</span>`;
 }
 
@@ -133,7 +133,7 @@ export function buildProps(el, rules) {
 }
 
 // The element a bet lives on (for chips, issue outlines and win/lose markers).
-export function spotEl(key, part = 'bet') {
+function spotEl(key, part = 'bet') {
   // Only table spots: My Bets rows and the spot menu reuse data-key on their buttons.
   if (part === 'odds' && (key === 'pass' || key === 'dontPass')) return document.querySelector(`.spot[data-odds="${key}"]`);
   return document.querySelector(`.spot[data-key="${key}"]`) ?? document.querySelector(`[data-line="${key}"]`)?.closest('.box');
@@ -172,7 +172,7 @@ export function renderTable(table, issues) {
     : [document.querySelector('.dc-spot .puck-slot'), '<span class="puck off">OFF</span>'];
   puck[0].innerHTML = puck[1];
 
-  for (const issue of issues) spotEl(issue.key, issue.part)?.classList.add(`issue-${issue.level === 'error' ? 'error' : 'warn'}`);
+  for (const issue of issues) spotEl(issue.key, issue.part)?.classList.add(`issue-${issue.level}`);
 
   const made = new Set(table.shooter.pointsMade);
   document.querySelectorAll('#fire-tracker i').forEach((i) => i.classList.toggle('lit', made.has(+i.dataset.n)));

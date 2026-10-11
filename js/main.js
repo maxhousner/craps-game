@@ -6,13 +6,12 @@ import {
   CHIP_VALUES, renderChipRack, animateDice, showDice, stickmanCall, resultsText,
   renderBetList, renderSpotMenu, renderIssues, toast, openSheet, closeSheets,
 } from './ui/controls.js';
-import { initSettings } from './ui/settings.js';
-import { newStats, recordRoll, renderStats, renderHistory } from './ui/stats.js';
+import { initSettings, SAVE_KEY } from './ui/settings.js';
+import { newStats, recordRoll, renderStats, renderHistory, signed, signClass } from './ui/stats.js';
 import { initAutoplay } from './ui/autoplay.js';
 import { createRunner } from './sim/strategy.js';
 import { esc } from './ui/html.js';
 
-const SAVE_KEY = 'craps-game:v1';
 const $ = (id) => document.getElementById(id);
 
 let table, stats, history, prefs, chip, lastRoll;
@@ -70,8 +69,8 @@ function render() {
   renderTable(table, issues);
   $('bankroll').textContent = money(table.bankroll);
   $('on-table').textContent = money(table.totalOnTable());
-  $('session').textContent = `${pl > 0 ? '+' : pl < 0 ? '−' : ''}${money(Math.abs(pl))}`;
-  $('session').className = pl > 0 ? 'pos' : pl < 0 ? 'neg' : '';
+  $('session').textContent = signed(pl);
+  $('session').className = signClass(pl);
   $('point-label').textContent = table.point ?? 'OFF';
   renderChipRack($('chip-rack'), chip);
   renderBetList($('bet-list'), table, chip, issues);
@@ -125,15 +124,7 @@ function undo() {
 }
 
 function takeDownAll() {
-  act(() => {
-    let any = false;
-    for (const bet of Object.values(table.bets)) {
-      if (bet.odds && table.removeOdds(bet.key).ok) any = true;
-      const n = Math.min(table.def(bet).removable(table, bet), bet.amount);
-      if (n > 0 && table.removeBet(bet.key, n).ok) any = true;
-    }
-    return any ? { ok: true } : { ok: false, error: 'Nothing on the table can come down right now.' };
-  });
+  act(() => (table.takeDownAll() ? { ok: true } : { ok: false, error: 'Nothing on the table can come down right now.' }));
 }
 
 function handleAction(action, key, part) {

@@ -44,7 +44,7 @@ const ON_LOSS = [['reset', 'Back to the starting bet'], ['same', 'Keep the same 
 
 const options = (list, value) => list.map(([v, t]) => `<option value="${v}"${String(value) === v ? ' selected' : ''}>${t}</option>`).join('');
 
-function fields(plan, i) {
+function fields(plan) {
   const kind = BET_KINDS[plan.bet];
   const out = [`<label class="mini"><span>Amount${kind.numbers ? ' each' : ''}</span>
     <input type="number" min="1" step="1" inputmode="numeric" data-field="amount" value="${plan.amount}"></label>`];
@@ -99,7 +99,7 @@ function planCard(plan, i) {
         <button type="button" class="icon-btn small" data-remove="${i}" aria-label="Remove ${kind.label}">✕</button>
       </div>
       <p class="plan-desc">${describePlan(plan)}</p>
-      <div class="plan-fields">${fields(plan, i)}</div>
+      <div class="plan-fields">${fields(plan)}</div>
       ${prog ? `<details class="prog"${plan.progression ? ' open' : ''}><summary>Press / progression</summary>
         <div class="plan-fields">${progressionFields(plan)}</div></details>` : ''}
     </div>`;

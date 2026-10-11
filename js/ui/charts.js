@@ -248,8 +248,9 @@ export function histograms(el, series, bins = 28) {
       const s = series[+h.dataset.s];
       const b = +h.dataset.b;
       const from = lo + b * width;
-      const edge = b === 0 ? 'or less' : b === bins - 1 ? 'or more' : `to ${signed(from + width)}`;
-      const range = b === 0 ? `${signed(from + width)} or less` : b === bins - 1 ? `${signed(from)} or more` : `${signed(from)} ${edge}`;
+      const range = b === 0 ? `${signed(from + width)} or less`
+        : b === bins - 1 ? `${signed(from)} or more`
+        : `${signed(from)} to ${signed(from + width)}`;
       showTip(e.clientX, e.clientY, s.name, [{ color: s.color, label: `of sessions ended ${range}`, value: `${(counts[+h.dataset.s][b] * 100).toFixed(1)}%` }]);
     });
     h.addEventListener('pointerleave', hideTip);

@@ -37,7 +37,7 @@ export function newId() {
 }
 
 // Presets first, then the player's own.
-export function allStrategies() {
+function allStrategies() {
   return [...PRESETS, ...loadLibrary()];
 }
 

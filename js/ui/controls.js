@@ -74,6 +74,11 @@ export function resultsText(results, table) {
 }
 
 // One row in My Bets or the spot menu: amount, payout and the controls for that bet.
+// An issue line with its Fix button, used in My Bets and above the chip rack.
+const issueHTML = (i) => `
+  <p class="issue ${i.level}">${i.message}
+    <button data-action="fix" data-key="${i.key}" data-part="${i.part}">Fix</button></p>`;
+
 function betRow(table, bet, chip, issues) {
   const def = table.def(bet);
   const label = def.label(bet);
@@ -87,7 +92,7 @@ function betRow(table, bet, chip, issues) {
   const btn = (action, text, aria, disabled = false) =>
     `<button data-action="${action}" data-key="${bet.key}" aria-label="${aria}"${disabled ? ' disabled' : ''}>${text}</button>`;
   return `
-    <div class="bet-row${status.endsWith('ff') ? ' is-off' : ''}">
+    <div class="bet-row${status && !working ? ' is-off' : ''}">
       <div class="bet-main">
         <span class="bet-name">${label}</span>
         <span class="bet-amt">${money(bet.amount)}${bet.odds ? ` <small>+ ${money(bet.odds)} ${info?.take === false ? 'lay' : 'odds'}</small>` : ''}</span>
@@ -101,9 +106,7 @@ function betRow(table, bet, chip, issues) {
         ${def.toggle && (def.toggle === 'bet' || bet.odds) ? btn('toggle', working ? 'Off' : 'On', `Turn ${label} ${working ? 'off' : 'on'}`) : ''}
         ${btn('down', '✕', `Take down ${label}`, removable < bet.amount)}
       </div>
-      ${issues.filter((i) => i.key === bet.key).map((i) => `
-        <p class="issue ${i.level}">${i.message}
-          <button data-action="fix" data-key="${bet.key}" data-part="${i.part}">Fix</button></p>`).join('')}
+      ${issues.filter((i) => i.key === bet.key).map(issueHTML).join('')}
     </div>`;
 }
 
@@ -127,7 +130,7 @@ export function renderSpotMenu(el, table, chip, spot, issues) {
     help = [['place', `place:${n}`, 'Place'], ['buy', `buy:${n}`, 'Buy'], ['lay', `lay:${n}`, 'Lay'], ['put', null, 'Put']];
   } else {
     title = table.label(spot.key);
-    adds = [[spot.key, `${title}`]];
+    adds = [[spot.key, title]];
     keys = [spot.key];
     help = [[topicFor(spot.key, spot.odds), spot.odds ? null : spot.key, 'What\'s this?']];
   }
@@ -156,9 +159,7 @@ function helpPanel(table, [id, key]) {
 export function renderIssues(el, issues) {
   el.hidden = issues.length === 0;
   const errors = issues.filter((i) => i.level === 'error').length;
-  el.innerHTML = issues.map((i) => `
-    <p class="issue ${i.level}">${i.message}
-      <button data-action="fix" data-key="${i.key}" data-part="${i.part}">Fix</button></p>`).join('')
+  el.innerHTML = issues.map(issueHTML).join('')
     + (issues.length > 1 ? `<button class="fix-all" data-action="fix-all">Fix all${errors ? ` (${errors} blocking)` : ''}</button>` : '');
 }
 

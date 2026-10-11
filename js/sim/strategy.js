@@ -11,7 +11,7 @@
 //     every: 1, regressTo: 6, ladder: [12, 18, 24], resetAfter: 0,
 //     onLoss: 'reset' | 'same' | 'double' | 'addUnit', max: 0 }
 
-import { POINTS, roundUpTo } from '../engine/rules.js';
+import { POINTS, roundUpTo, lcm } from '../engine/rules.js';
 import { parseKey } from '../engine/bets.js';
 import { money } from '../engine/table.js';
 
@@ -37,9 +37,6 @@ export const BET_KINDS = {
   tall: { label: 'Tall', group: 'side' },
   all: { label: 'All', group: 'side' },
 };
-
-const gcd = (a, b) => (b ? gcd(b, a % b) : a);
-const lcm = (a, b) => (a * b) / gcd(a, b);
 
 // The table keys a plan manages.
 export function planKeys(plan) {

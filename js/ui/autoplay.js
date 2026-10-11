@@ -4,7 +4,7 @@ import { PRESETS } from '../sim/presets.js';
 import { loadLibrary, findStrategy } from '../sim/library.js';
 import { esc } from './html.js';
 
-export const SPEEDS = {
+const SPEEDS = {
   slow: { label: 'Slow: watch every roll', delay: 1800, fast: false },
   normal: { label: 'Normal', delay: 700, fast: false },
   fast: { label: 'Fast: no dice animation', delay: 250, fast: true },
