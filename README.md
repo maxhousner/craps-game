@@ -19,6 +19,8 @@ npm start        # or: python3 -m http.server 8080
 
 Then open http://localhost:8080.
 
+**Practice mode:** add `?dev` to the address (for example https://maxhousner.github.io/craps-game/?dev) to get a "Force next roll" picker. Choose the dice to see exactly how your bets resolve in a given situation.
+
 ## Tests
 
 ```sh
