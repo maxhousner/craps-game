@@ -13,18 +13,12 @@
 <body class="game-page">
   <header class="topbar">
     <h1 class="brand"><span class="brand-die" aria-hidden="true"></span><span class="brand-name">Craps</span></h1>
-    <a class="top-link hide-sm" href="simulate.html">Simulator</a>
-    <div class="meters">
-      <div class="meter"><span>Bankroll</span><strong id="bankroll">$0</strong></div>
-      <div class="meter hide-sm"><span>On table</span><strong id="on-table">$0</strong></div>
-      <div class="meter session"><span>Session</span><strong id="session">$0</strong></div>
-      <div class="meter point"><span>Point</span><strong id="point-label">OFF</strong></div>
-    </div>
-    <button id="open-autoplay" class="icon-btn" aria-label="Autoplay a strategy">
-      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/></svg>
-    </button>
-    <a class="icon-btn help-link" href="help.html" aria-label="How to play and what every bet means">?</a>
-    <button id="open-settings" class="icon-btn" aria-label="Settings">
+    <nav class="top-links" aria-label="Pages">
+      <a href="./" aria-current="page">Table</a>
+      <a href="simulate.html">Simulator</a>
+      <a href="help.html">Guide</a>
+    </nav>
+    <button id="open-settings" class="icon-btn settings-btn" aria-label="Settings">
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.4 7.4 0 0 0 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>
     </button>
   </header>
@@ -37,6 +31,15 @@
         <p><span id="roll-net" class="net"></span> <span id="roll-detail" class="detail"></span></p>
       </div>
       <ol id="history" class="history" aria-label="Recent rolls, newest first"></ol>
+      <div class="meters">
+        <div class="meter"><span>Bankroll</span><strong id="bankroll">$0</strong></div>
+        <div class="meter hide-sm"><span>On table</span><strong id="on-table">$0</strong></div>
+        <div class="meter session"><span>Session</span><strong id="session">$0</strong></div>
+        <div class="meter point"><span>Point</span><strong id="point-label">OFF</strong></div>
+        <button id="open-autoplay" class="auto-btn" aria-label="Autoplay a strategy">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/></svg><span>Autoplay</span>
+        </button>
+      </div>
     </section>
 
     <div class="col-main">
@@ -47,6 +50,16 @@
       <button data-sheet="bets">My Bets <span id="bet-count"></span></button>
     </nav>
 
+    <section class="center" id="center">
+      <button class="center-bar" id="center-toggle" aria-expanded="true" aria-controls="props">
+        <span>Center action &amp; side bets</span><span class="center-on" id="center-on"></span><span class="center-act" id="center-act">Hide</span>
+      </button>
+      <aside class="props sheet" id="props" aria-label="Center action and side bets"></aside>
+    </section>
+    </div>
+
+    <div class="col-side">
+    <section class="stats-panel" id="stats" aria-label="Session stats"></section>
     <section class="bets-panel sheet" id="bets" aria-label="My bets">
       <div class="sheet-head">
         <h2>My Bets <small>on table <span id="bets-on-table">$0</span></small></h2>
@@ -55,11 +68,6 @@
       <div id="bet-list"></div>
       <p class="tip">Tip: long-press (phone) or right-click (computer) any spot for more options, like buy, lay and put.</p>
     </section>
-    </div>
-
-    <div class="col-side">
-    <aside class="props sheet" id="props" aria-label="Center action and side bets"></aside>
-    <section class="stats-panel" id="stats" aria-label="Session stats"></section>
     </div>
   </main>
 

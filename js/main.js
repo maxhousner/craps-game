@@ -16,6 +16,7 @@ const SAVE_KEY = 'craps-game:v1';
 const $ = (id) => document.getElementById(id);
 
 let table, stats, history, prefs, chip, lastRoll;
+let propKeys; // bet keys of the center-action spots, for the strip's total
 let undoStack = []; // table snapshots taken before each action since the last roll
 let rolling = false;
 let menuSpot = null; // { key } or { number } while the spot menu is open
@@ -52,6 +53,14 @@ function save() {
 function buildStatic() {
   buildFelt($('felt'), table.rules);
   buildProps($('props'), table.rules);
+  propKeys = new Set([...$('props').querySelectorAll('[data-key]')].map((el) => el.dataset.key));
+}
+
+function renderCenter() {
+  const open = prefs.centerOpen !== false;
+  $('center').classList.toggle('collapsed', !open);
+  $('center-toggle').setAttribute('aria-expanded', open);
+  $('center-act').textContent = open ? 'Hide' : 'Show';
 }
 
 function render() {
@@ -69,6 +78,8 @@ function render() {
   const count = Object.keys(table.bets).length;
   $('bet-count').textContent = count ? `(${count})` : '';
   $('bets-on-table').textContent = money(table.totalOnTable());
+  const centerOn = table.betList().reduce((s, b) => (propKeys.has(b.key) ? s + b.amount : s), 0);
+  $('center-on').textContent = centerOn ? `${money(centerOn)} bet here` : '';
   renderIssues($('issues'), issues);
   $('roll').disabled = rolling;
   $('roll').classList.toggle('blocked', blocked);
@@ -384,6 +395,12 @@ const openSettings = initSettings($('settings'), {
   },
 });
 $('open-settings').addEventListener('click', openSettings);
+$('center-toggle').addEventListener('click', () => {
+  prefs.centerOpen = prefs.centerOpen === false;
+  save();
+  renderCenter();
+});
 $('open-autoplay').addEventListener('click', initAutoplay($('autoplay'), { onStart: startAuto }));
 render();
 renderStatus();
+renderCenter();

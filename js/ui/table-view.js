@@ -103,25 +103,33 @@ export function buildProps(el, rules) {
 
   el.innerHTML = `
     <div class="sheet-head"><h2>Center Action</h2><button class="icon-btn sheet-close" data-close aria-label="Close">✕</button></div>
-    ${prop('any7', `<span class="name">ANY SEVEN</span>${pays('4 to 1')}`, 'Any Seven, one roll, pays 4 to 1', 'wide seven')}
-    <div class="prop-grid">${hardways}</div>
-    <div class="prop-grid">${numbers}</div>
-    ${prop('anyCraps', `<span class="name">ANY CRAPS</span>${pays('7 to 1')}`, 'Any Craps: 2, 3 or 12, one roll, pays 7 to 1', 'wide craps')}
-    <div class="prop-grid three">
-      ${prop('ce', `<span class="name">C &amp; E</span>${pays('2 units')}`, 'Craps and Eleven, 2 units')}
-      ${prop('horn', `<span class="name">HORN</span>${pays('4 units')}`, 'Horn: 2, 3, 11, 12, 4 units')}
-      ${prop('world', `<span class="name">WORLD</span>${pays('5 units')}`, 'World: horn plus any seven, 5 units')}
+    <div class="prop-group">
+      ${prop('any7', `<span class="name">ANY SEVEN</span>${pays('4 to 1')}`, 'Any Seven, one roll, pays 4 to 1', 'wide seven')}
+      <div class="prop-grid">${hardways}</div>
     </div>
-    <div class="horn-high"><span class="hh-label">HORN HIGH</span>
-      ${[2, 3, 11, 12].map((n) => prop(`hornHigh:${n}`, `<span class="name">${n}</span>`, `Horn high ${n}, 5 units`, 'hh')).join('')}
+    <div class="prop-group">
+      <div class="prop-grid">${numbers}</div>
+      ${prop('anyCraps', `<span class="name">ANY CRAPS</span>${pays('7 to 1')}`, 'Any Craps: 2, 3 or 12, one roll, pays 7 to 1', 'wide craps')}
     </div>
-    <details class="hops"><summary>Hop bets <small>easy ${hopPays(rules, 1, 2)}:1 · hard ${hopPays(rules, 1, 1)}:1</small></summary>
-      <div class="hop-grid">${hops.join('')}</div></details>
-    <h2 class="side-title">Side Bets</h2>
-    ${prop('fire', `<span class="name">FIRE BET</span>${pays('4 pts 24 · 5 pts 249 · 6 pts 999 to 1')}${tracker('fire-tracker', POINTS)}`,
-      'Fire Bet: different points made by this shooter, pays 24, 249 or 999 to 1', 'wide fire')}
-    <div class="prop-grid three">${ats('small', 'Small')}${ats('tall', 'Tall')}${ats('all', 'All')}</div>
-    <p class="ats-row">Rolled since last 7: ${tracker('ats-tracker', ATS_NUMBERS.all)}</p>`;
+    <div class="prop-group">
+      <div class="prop-grid three">
+        ${prop('ce', `<span class="name">C &amp; E</span>${pays('2 units')}`, 'Craps and Eleven, 2 units')}
+        ${prop('horn', `<span class="name">HORN</span>${pays('4 units')}`, 'Horn: 2, 3, 11, 12, 4 units')}
+        ${prop('world', `<span class="name">WORLD</span>${pays('5 units')}`, 'World: horn plus any seven, 5 units')}
+      </div>
+      <div class="horn-high"><span class="hh-label">HORN HIGH</span>
+        ${[2, 3, 11, 12].map((n) => prop(`hornHigh:${n}`, `<span class="name">${n}</span>`, `Horn high ${n}, 5 units`, 'hh')).join('')}
+      </div>
+      <details class="hops"><summary>Hop bets <small>easy ${hopPays(rules, 1, 2)}:1 · hard ${hopPays(rules, 1, 1)}:1</small></summary>
+        <div class="hop-grid">${hops.join('')}</div></details>
+    </div>
+    <div class="prop-group side-group">
+      <h2 class="side-title">Side Bets</h2>
+      ${prop('fire', `<span class="name">FIRE BET</span>${pays('4 pts 24 · 5 pts 249 · 6 pts 999 to 1')}${tracker('fire-tracker', POINTS)}`,
+        'Fire Bet: different points made by this shooter, pays 24, 249 or 999 to 1', 'wide fire')}
+      <div class="prop-grid three">${ats('small', 'Small')}${ats('tall', 'Tall')}${ats('all', 'All')}</div>
+      <p class="ats-row">Rolled since last 7: ${tracker('ats-tracker', ATS_NUMBERS.all)}</p>
+    </div>`;
 }
 
 // The element a bet lives on (for chips, issue outlines and win/lose markers).

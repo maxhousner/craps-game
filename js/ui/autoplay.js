@@ -33,7 +33,7 @@ export function initAutoplay(dialog, { onStart }) {
         <label class="field"><span>Stop after</span>
           <input name="limit" type="number" min="1" step="1" inputmode="numeric" placeholder="Keep going (rolls)"></label>
         <p class="note">Bets already on the table stay put; the strategy adds and adjusts its own bets.
-          <a href="simulate.html">Build or test strategies in the simulator →</a></p>
+          <a href="simulate.html">Build or test strategies in the simulator</a></p>
         <div class="editor-actions"><span class="spacer"></span>
           <button type="button" class="ghost" data-auto-close>Cancel</button>
           <button type="submit" class="roll-btn">Start</button></div>
