@@ -18,6 +18,8 @@ Plain HTML/CSS/JS with ES modules. No frameworks, CDNs, build step or dependenci
   - `dice.js`: crypto dice for play; seeded dice for tests and simulations
 - `js/ui/`: felt layout and rendering (`table-view.js`), controls/My Bets/spot menu (`controls.js`), `settings.js`, `stats.js`
 - `js/main.js`: wires UI ↔ engine, undo snapshots, save/load (`localStorage` key `craps-game:v1`)
+- `help.html` + `js/help.js` + `css/help.css`: the guide page. The table map reuses `buildFelt`/`buildProps`.
+- `js/help-content.js`: the one source for bet write-ups (`TOPICS`, `topicFor(key)`). Feeds both the guide and the in-game "What's this?" in the spot menu. Update it whenever rules or payouts change.
 - `tests/`: `node --test` suites
 
 ## Rules that are easy to break

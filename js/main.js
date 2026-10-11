@@ -172,7 +172,7 @@ async function roll() {
 // Spot menu (long-press / right-click).
 function openMenu(el) {
   const box = el.closest('.box');
-  menuSpot = box ? { number: Number(box.dataset.number) } : { key: el.dataset.key ?? el.dataset.odds };
+  menuSpot = box ? { number: Number(box.dataset.number) } : { key: el.dataset.key ?? el.dataset.odds, odds: !!el.dataset.odds };
   closeSheets();
   $('spot-menu').hidden = false;
   $('backdrop').hidden = false;
@@ -195,9 +195,12 @@ function wireEvents() {
       e.preventDefault();
       return;
     }
-    const t = e.target.closest('[data-chip], [data-action], [data-odds], [data-key], [data-sheet], [data-close]');
+    const t = e.target.closest('[data-chip], [data-action], [data-help], [data-odds], [data-key], [data-sheet], [data-close]');
     if (!t || t.disabled) return;
-    if (t.dataset.chip) {
+    if (t.dataset.help) {
+      menuSpot.help = menuSpot.help === t.dataset.help ? null : t.dataset.help;
+      render();
+    } else if (t.dataset.chip) {
       chip = Number(t.dataset.chip);
       save();
       render();

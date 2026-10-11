@@ -1,6 +1,8 @@
 // Chip rack, dice, the stickman's call, the My Bets list, the spot menu, issues, toasts and sheets.
 import { money } from '../engine/table.js';
+import { parseKey } from '../engine/bets.js';
 import { chipColor, shortMoney, dieHTML } from './table-view.js';
+import { topic, topicFor, topicHTML } from '../help-content.js';
 
 export const CHIP_VALUES = [1, 5, 25, 100, 500, 1000];
 
@@ -112,24 +114,42 @@ export function renderBetList(el, table, chip, issues) {
 }
 
 // Long-press / right-click menu for one spot. A number box offers place, buy, lay and put.
+// `help` entries are [topic id, bet key for the "at this table" payout (or null), button label].
 export function renderSpotMenu(el, table, chip, spot, issues) {
-  let title, adds, keys;
+  let title, adds, keys, help;
   if (spot.number) {
     const n = spot.number;
     title = `The ${n}`;
     adds = [[`place:${n}`, `Place ${n}`], [`buy:${n}`, `Buy ${n}`], [`lay:${n}`, `Lay ${n}`]];
     if (table.point) adds.push([`come:${n}`, `Put ${n}`]);
     keys = [`place:${n}`, `buy:${n}`, `lay:${n}`, `come:${n}`, `dontCome:${n}`];
+    help = [['place', `place:${n}`, 'Place'], ['buy', `buy:${n}`, 'Buy'], ['lay', `lay:${n}`, 'Lay'], ['put', null, 'Put']];
   } else {
     title = table.label(spot.key);
     adds = [[spot.key, `${title}`]];
     keys = [spot.key];
+    help = [[topicFor(spot.key, spot.odds), spot.odds ? null : spot.key, 'What\'s this?']];
   }
   const rows = keys.filter((k) => table.bets[k]).map((k) => betRow(table, table.bets[k], chip, issues)).join('');
+  const open = help.find(([id]) => id === spot.help);
   el.innerHTML = `
     <div class="sheet-head"><h2>${title}</h2><button class="icon-btn" data-close aria-label="Close">✕</button></div>
+    <div class="menu-help">${help.length > 1 ? '<span>What\'s this?</span>' : ''}
+      ${help.map(([id, , label]) => `<button data-help="${id}" aria-pressed="${id === spot.help}">${label}</button>`).join('')}</div>
+    ${open ? helpPanel(table, open) : ''}
     <div class="menu-adds">${adds.map(([k, text]) => `<button data-action="add" data-key="${k}">${text} <b>+${money(chip)}</b></button>`).join('')}</div>
     ${rows || '<p class="empty">No bet here yet.</p>'}`;
+}
+
+function helpPanel(table, [id, key]) {
+  let atTable = '';
+  if (key) {
+    const bet = { key, ...parseKey(key) };
+    atTable = `<p class="at-table">At this table it pays <strong>${table.def(bet).pays(table.rules, bet)}</strong>.</p>`;
+  }
+  // Links inside the write-ups point at sections of the guide page.
+  const card = topicHTML(topic(id), { extra: atTable }).replaceAll('href="#', 'href="help.html#');
+  return `<div class="help-pop">${card}<a class="guide-link" href="help.html#${id}">Read the full guide →</a></div>`;
 }
 
 export function renderIssues(el, issues) {

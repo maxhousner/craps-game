@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Craps Guide</title>
+  <meta name="description" content="How craps works, what every spot on the table means, payouts, house edges and strategy basics.">
+  <meta name="theme-color" content="#0d1013">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='6' fill='%23d32f2f'/%3E%3Cg fill='%23fff'%3E%3Ccircle cx='10' cy='10' r='2.6'/%3E%3Ccircle cx='16' cy='16' r='2.6'/%3E%3Ccircle cx='22' cy='22' r='2.6'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/help.css">
+  <script type="module" src="js/help.js"></script>
+</head>
+<body class="help-page">
+  <header class="topbar">
+    <a class="brand" href="./"><span class="brand-die" aria-hidden="true"></span><span>Craps Guide</span></a>
+    <a class="back-btn" href="./">← Back to the table</a>
+  </header>
+
+  <div class="help-layout">
+    <nav class="toc" id="toc" aria-label="Contents"></nav>
+
+    <article class="guide">
+      <h1>How to play craps</h1>
+      <p class="lede">Everything on the table, explained in plain English: what each spot is, when you can bet it, how it wins and loses, what it pays, and what it costs you on average (the house edge).</p>
+
+      <section class="help-section" id="basics">
+        <h2>Craps in 60 seconds</h2>
+        <ol class="steps">
+          <li><strong>The come-out roll.</strong> Each round starts with a come-out roll, and the puck shows <span class="puck-inline off">OFF</span>.</li>
+          <li><strong>Naturals and craps.</strong> On the come-out, a <strong>7 or 11</strong> ("natural") wins for the Pass Line. A <strong>2, 3 or 12</strong> ("craps") loses. The round starts over either way.</li>
+          <li><strong>The point.</strong> Any other number (4, 5, 6, 8, 9 or 10) becomes <strong>the point</strong>. The puck flips to <span class="puck-inline on">ON</span> and sits on that number.</li>
+          <li><strong>Make it or seven out.</strong> The shooter keeps rolling. If the point rolls again, the Pass Line wins and a new come-out begins. If a <strong>7</strong> comes first, that's a <strong>seven out</strong>: the Pass Line loses and the dice go to the next shooter.</li>
+          <li><strong>Everything else</strong> on the table is a bet on what the dice will do along the way.</li>
+        </ol>
+
+        <h3>Why the numbers matter</h3>
+        <p>Two dice can land 36 ways. The 7 can be made 6 ways, more than any other total, which is why so many bets are "this number before a 7."</p>
+        <div class="table-wrap">
+          <table class="ways">
+            <thead><tr><th>Total</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th></tr></thead>
+            <tbody>
+              <tr><th>Ways</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td class="hl">6</td><td>5</td><td>4</td><td>3</td><td>2</td><td>1</td></tr>
+              <tr><th>Chance</th><td>2.8%</td><td>5.6%</td><td>8.3%</td><td>11.1%</td><td>13.9%</td><td class="hl">16.7%</td><td>13.9%</td><td>11.1%</td><td>8.3%</td><td>5.6%</td><td>2.8%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><strong>Chance a point is made before a 7:</strong> 4 or 10: 1 in 3 (33%) · 5 or 9: 2 in 5 (40%) · 6 or 8: 5 in 11 (45%).</p>
+      </section>
+
+      <section class="help-section" id="using">
+        <h2>Using this game</h2>
+        <ul class="plain">
+          <li><strong>Bet:</strong> pick a chip in the rack ($1 to $1,000), then tap a spot. Tap again to add another chip. Stack different chips to make any amount.</li>
+          <li><strong>More options:</strong> long-press a spot (phone) or right-click it (computer) to buy, lay or put a number, turn bets on or off, take them down, or open <em>What's this?</em> for help on that spot.</li>
+          <li><strong>My Bets</strong> lists every bet with what it wins if it hits, plus <kbd>+</kbd> <kbd>−</kbd> <kbd>On/Off</kbd> <kbd>✕</kbd> buttons. On a phone it's a drawer under the table, next to <em>Center Props</em>.</li>
+          <li><strong>Red outline:</strong> that bet has to be fixed before you can roll (below the minimum, or not in <a href="#proper-units">proper units</a>). Tap <em>Fix</em>. An <strong>amber</strong> outline is only a hint.</li>
+          <li><strong>Undo</strong> takes back anything since the last roll. <strong>Take down</strong> removes every bet that's allowed to come down.</li>
+          <li><strong>Keyboard:</strong> <kbd>Space</kbd> rolls, <kbd>1</kbd>–<kbd>6</kbd> pick a chip, <kbd>⌘/Ctrl</kbd>+<kbd>Z</kbd> undoes.</li>
+          <li><strong>Settings</strong> (gear icon) holds the <a href="#house-rules">house rules</a>, fast roll, and a bankroll reset. Your bankroll, bets and stats are saved in this browser.</li>
+        </ul>
+      </section>
+
+      <section class="help-section" id="map">
+        <h2>Table map</h2>
+        <p>Tap or click any spot to jump to its explanation.</p>
+        <div class="help-map">
+          <div class="felt" id="map-felt"></div>
+          <div class="props" id="map-props"></div>
+        </div>
+      </section>
+
+      <div id="bet-guide"></div>
+
+      <section class="help-section" id="working">
+        <h2>Working, off and contract bets</h2>
+        <p>A bet that's <strong>working</strong> wins or loses on the next roll. A bet that's <strong>off</strong> sits on the table untouched. These are the casino defaults on the come-out roll and once a point is set:</p>
+        <div class="table-wrap">
+          <table class="grid">
+            <thead><tr><th>Bet</th><th>Come-out roll</th><th>Point is on</th></tr></thead>
+            <tbody>
+              <tr><td>Pass, Don't Pass, Come, Don't Come</td><td>Working</td><td>Working</td></tr>
+              <tr><td>Odds on Pass / Don't Pass</td><td>—</td><td>Working</td></tr>
+              <tr><td>Odds on Come bets</td><td class="off">Off</td><td>Working</td></tr>
+              <tr><td>Odds on Don't Come bets</td><td>Working</td><td>Working</td></tr>
+              <tr><td>Place and Buy</td><td class="off">Off</td><td>Working</td></tr>
+              <tr><td>Hardways</td><td class="off">Off</td><td>Working</td></tr>
+              <tr><td>Lay, Big 6/8, Field and one-roll bets</td><td>Working</td><td>Working</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>You can turn place, buy, lay, hardway and Big 6/8 bets (and come-bet odds) on or off at any time. A gray chip with an <span class="tag">OFF</span> tag isn't working; an <span class="tag light">ON</span> tag means you turned it on for the come-out.</p>
+        <h3>Contract bets</h3>
+        <p>Once a point is set, <strong>Pass Line and Come bets can't be taken down</strong>. Their advantage comes from the come-out roll, where 7 and 11 win 8 ways and craps loses only 4. After that the bet is the underdog, so the casino holds you to it. The don't side can always come down, because doing so only helps the house. The Fire Bet and All/Tall/Small are also locked once rolling starts. Odds can always come down.</p>
+      </section>
+
+      <section class="help-section" id="proper-units">
+        <h2>Proper units</h2>
+        <p>Casinos pay in whole dollars. When a payout would include cents, the dealer rounds it <em>down</em>, which is called <strong>breakage</strong>. A $5 Place 6 should pay $5.83 at 7 to 6, but the casino pays $5. Betting in proper units avoids that.</p>
+        <p>By default this game only lets you roll with proper bets. In Settings you can allow other amounts; the payout then rounds down like a real table, and you'll still see a hint.</p>
+        <div class="table-wrap">
+          <table class="grid units">
+            <thead><tr><th>Bet</th><th>4 or 10</th><th>5 or 9</th><th>6 or 8</th></tr></thead>
+            <tbody>
+              <tr><td>Place</td><td>$5</td><td>$5</td><td>$6</td></tr>
+              <tr><td>Odds (taking)</td><td>$1</td><td>$2</td><td>$5</td></tr>
+              <tr><td>Odds (laying)</td><td>$2</td><td>$3</td><td>$6</td></tr>
+              <tr><td>Buy</td><td>$1</td><td>$2</td><td>$5</td></tr>
+              <tr><td>Lay</td><td>$2</td><td>$3</td><td>$6</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Field, Big 6/8, hardways, props and the side bets always pay whole dollars. Horn, World and C&amp;E have to be bet in multiples of 4, 5 and 2 because they're split evenly across numbers.</p>
+      </section>
+
+      <section class="help-section" id="house-edge">
+        <h2>House edge comparison</h2>
+        <p>The house edge is the average share of each bet the casino keeps over time. A 1.41% edge means you lose about $1.41 per $100 bet in the long run. Lower is better. Short-term results swing far more than this, which is what makes strategy testing interesting.</p>
+        <div id="edge-table"></div>
+        <p class="note">Vegas defaults: vig charged on wins, field 12 pays 3 to 1, props pay "to 1". These figures are checked exactly by this game's test suite.</p>
+      </section>
+
+      <section class="help-section" id="house-rules">
+        <h2>House rules (Settings)</h2>
+        <p>Casinos vary, so you can set these to match the one you play. House rules can only change when no bets are on the table.</p>
+        <dl class="facts wide">
+          <div><dt>Table minimum / maximum</dt><dd>The smallest and largest bet on line, come, place, buy, lay, field and Big 6/8. Odds, hardways and props can go down to $1. The Place 6/8 minimum rounds up to a proper unit ($6 at a $5 table).</dd></div>
+          <div><dt>Max odds</dt><dd>How much odds you can take behind a line bet. "3-4-5x" is the Vegas standard. Higher odds lower your overall edge.</dd></div>
+          <div><dt>Field: 12 pays</dt><dd>3 to 1 (2.78% edge) or 2 to 1 (5.56%).</dd></div>
+          <div><dt>Don't side pushes on</dt><dd>Bar 12 (most casinos) or bar 2. The edge is the same.</dd></div>
+          <div><dt>Buy / lay vig</dt><dd>Charged only when the bet wins (cheaper) or up front when you make the bet.</dd></div>
+          <div><dt>Props pay</dt><dd>"To 1" (30 to 1, 15 to 1) or "for 1" (30 for 1 = 29 to 1). Affects the 2, 3, 11, 12, horn bets, C&amp;E and hops.</dd></div>
+          <div><dt>All / Tall / Small</dt><dd>34/34/175 to 1 or the stingier 30/30/150.</dd></div>
+          <div><dt>Allow non-proper bets</dt><dd>Lets you roll with bets that aren't in proper units. Payouts round down.</dd></div>
+          <div><dt>Fast roll</dt><dd>Skips the dice animation, which is handy when you're testing a strategy.</dd></div>
+        </dl>
+      </section>
+
+      <section class="help-section" id="glossary">
+        <h2>Glossary</h2>
+        <dl class="glossary">
+          <div><dt>Bar</dt><dd>The number that's a push for don't bets on their first roll (usually 12).</dd></div>
+          <div><dt>Breakage</dt><dd>Rounding a payout down to the dollar when a bet isn't in proper units.</dd></div>
+          <div><dt>Center action / props</dt><dd>The one-roll and hardway bets in the middle of the table.</dd></div>
+          <div><dt>Collect / same bet</dt><dd>Take your winnings and leave the bet as it is.</dd></div>
+          <div><dt>Come-out roll</dt><dd>The first roll of a round, when no point is set (puck OFF).</dd></div>
+          <div><dt>Contract bet</dt><dd>A bet you can't take down: Pass Line and Come bets once they have a point.</dd></div>
+          <div><dt>Craps</dt><dd>A 2, 3 or 12. On the come-out it loses for the Pass Line.</dd></div>
+          <div><dt>Dark side / wrong bettor</dt><dd>Betting the don't side, against the shooter. "Right" bettors play pass and come.</dd></div>
+          <div><dt>Easy / hard</dt><dd>A 4, 6, 8 or 10 rolled without a pair (easy) or as a pair (hard).</dd></div>
+          <div><dt>Hedge</dt><dd>A bet that protects another, like Any Craps to cover a come-out Pass Line bet.</dd></div>
+          <div><dt>Hop</dt><dd>A one-roll bet on an exact dice combination.</dd></div>
+          <div><dt>Inside / across</dt><dd>Place bets on 5, 6, 8, 9 (inside) or on all six numbers (across).</dd></div>
+          <div><dt>Natural</dt><dd>A 7 or 11 on the come-out roll.</dd></div>
+          <div><dt>Odds</dt><dd>The zero-edge bet you add behind a line bet once it has a point.</dd></div>
+          <div><dt>Off / working</dt><dd>Whether a bet is in action on the next roll.</dd></div>
+          <div><dt>Parlay</dt><dd>Letting a bet ride with its winnings added.</dd></div>
+          <div><dt>Point</dt><dd>The 4, 5, 6, 8, 9 or 10 set on the come-out, which the shooter needs to roll again before a 7.</dd></div>
+          <div><dt>Press</dt><dd>Adding winnings to a bet to make it bigger, usually doubling it: "press my 6."</dd></div>
+          <div><dt>Proper units</dt><dd>Bet sizes that pay out in whole dollars, like $6 on the 6 or 8.</dd></div>
+          <div><dt>Puck</dt><dd>The ON/OFF marker showing whether a point is set and which number it is.</dd></div>
+          <div><dt>Regress</dt><dd>Lowering a bet after it wins to lock in profit, like dropping a $12 Place 6 to $6.</dd></div>
+          <div><dt>Seven out</dt><dd>A 7 after the point is set. The round ends and the dice pass to the next shooter.</dd></div>
+          <div><dt>Shooter</dt><dd>The player rolling the dice.</dd></div>
+          <div><dt>Stickman</dt><dd>The dealer who calls each roll and handles the center bets.</dd></div>
+          <div><dt>True odds</dt><dd>A payout that exactly matches the chance of winning, so there's no house edge.</dd></div>
+          <div><dt>Vig (vigorish)</dt><dd>The 5% commission on buy and lay bets.</dd></div>
+          <div><dt>Yo</dt><dd>The 11, called "yo-leven" so it isn't confused with "seven".</dd></div>
+        </dl>
+      </section>
+    </article>
+  </div>
+</body>
+</html>

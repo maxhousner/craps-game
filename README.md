@@ -7,6 +7,7 @@ A casino-accurate craps game that runs in the browser on desktop and phone. It's
 - **Proper units enforced** the way a dealer would ($6 on the 6/8). An optional setting allows any amount and rounds payouts down like a real table.
 - **Fair dice** from the browser's cryptographic random number generator.
 - Session stats, roll history and saved progress.
+- **Built-in guide** (`help.html`): how craps works, a clickable table map, every bet in plain English, working/off rules, proper units, a house-edge comparison and a glossary. Long-press any spot in the game and tap *What's this?* for the short version.
 
 ## Play locally
 
