@@ -37,12 +37,8 @@ export function newId() {
 }
 
 // Presets first, then the player's own.
-function allStrategies() {
-  return [...PRESETS, ...loadLibrary()];
-}
-
 export function findStrategy(id) {
-  return allStrategies().find((s) => s.id === id);
+  return [...PRESETS, ...loadLibrary()].find((s) => s.id === id);
 }
 
 export const isPreset = (id) => PRESETS.some((p) => p.id === id);

@@ -55,9 +55,16 @@ function renderGuide() {
     </section>`).join('');
 }
 
+// Bar color for a house edge %.
+function grade(edge) {
+  if (edge < 1.5) return 'good';
+  if (edge < 3) return 'ok';
+  if (edge < 8) return 'meh';
+  return 'bad';
+}
+
 function renderEdges() {
   const max = Math.max(...EDGES.map(([, e]) => e));
-  const grade = (e) => (e < 1.5 ? 'good' : e < 3 ? 'ok' : e < 8 ? 'meh' : 'bad');
   document.getElementById('edge-table').innerHTML = EDGES.map(([label, edge, id, shown]) => `
     <div class="edge-row">
       <a href="#${id}">${label}</a>
@@ -67,9 +74,9 @@ function renderEdges() {
 }
 
 function renderMap() {
-  const rules = { ...DEFAULT_RULES, ...savedRules() };
   // The guide explains every bet, so the map also shows the ones this table doesn't offer.
-  Object.assign(rules, { bigBets: true, fireBet: true }, rules.atsPayTable === 'off' && { atsPayTable: DEFAULT_RULES.atsPayTable });
+  const rules = { ...DEFAULT_RULES, ...savedRules(), bigBets: true, fireBet: true };
+  if (rules.atsPayTable === 'off') rules.atsPayTable = DEFAULT_RULES.atsPayTable;
   buildFelt(document.getElementById('map-felt'), rules);
   buildProps(document.getElementById('map-props'), rules);
   document.querySelectorAll('.help-map .spot').forEach((spot) => {
@@ -133,7 +140,8 @@ function trackPosition() {
   const wide = matchMedia('(min-width: 960px)');
   const links = new Map();
   for (const a of document.querySelectorAll('.toc a, #toc-sheet-list a')) {
-    links.set(a.hash.slice(1), [...(links.get(a.hash.slice(1)) ?? []), a]);
+    const id = a.hash.slice(1);
+    links.set(id, [...(links.get(id) ?? []), a]);
   }
   const targets = [...document.querySelectorAll('.guide .help-section, .guide .topic[id]')].filter((el) => links.has(el.id));
   let lit = [];
@@ -145,7 +153,8 @@ function trackPosition() {
       if (el.getBoundingClientRect().top > 140) break;
       at = el;
     }
-    const path = [at?.closest('.help-section'), at].filter((el, i, all) => el && all.indexOf(el) === i);
+    // The section on screen, then the bet card within it (a Set drops the repeat when `at` is the section).
+    const path = at ? [...new Set([at.closest('.help-section'), at])] : [];
     const next = path.flatMap((el) => links.get(el.id));
     if (next.length !== lit.length || next.some((a, i) => a !== lit[i])) {
       lit.forEach((a) => a.removeAttribute('aria-current'));

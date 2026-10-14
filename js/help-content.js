@@ -37,7 +37,7 @@ export const TOPICS = [
       ['Loses', 'Come-out 2, 3 or 12, called "craps" (4 of 36 rolls). After a point is set, a 7 ("seven out").'],
       ['Pays', '1 to 1 (even money).'],
       ['House edge', '1.41%'],
-      ['Can it come down?', 'Not once a point is set. It\'s a <a href="#working">contract bet</a>: you can add to it, but once the dice roll it can't go below what was on it. Chips you add can come back off until the next roll. Adding <a href="#odds">odds</a> is the better way to add. Before the point, yes.'],
+      ['Can it come down?', 'Not once a point is set. It\'s a <a href="#working">contract bet</a>: you can add to it, but once the dice roll it can\'t go below what was on it. Chips you add can come back off until the next roll. Adding <a href="#odds">odds</a> is the better way to add. Before the point, yes.'],
     ],
     tip: 'Add <a href="#odds">odds</a> as soon as a point is set. Odds have no house edge, so with full 3-4-5x odds your overall edge drops from 1.41% to about 0.37%.',
   },

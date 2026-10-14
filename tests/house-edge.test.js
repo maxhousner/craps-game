@@ -7,16 +7,17 @@ import { CrapsTable } from '../js/engine/table.js';
 import { POINTS, maxOdds, maxLay, DEFAULT_RULES } from '../js/engine/rules.js';
 
 const BANKROLL = 1_000_000;
+const isAts = (type) => ['small', 'tall', 'all'].includes(type);
 
 // Expected dollars won (negative = lost) per decision for the bets on `table`.
 // States that loop back on each other are solved with Gauss-Seidel iteration.
 function exactEV(table) {
   // Only track the Fire / All-Tall-Small history when one of those bets is up.
   const types = Object.values(table.bets).map((b) => b.type);
-  const ats = types.some((t) => ['small', 'tall', 'all'].includes(t));
+  const ats = types.some(isAts);
   const fire = types.includes('fire');
   const sorted = (a) => [...a].sort((x, y) => x - y);
-  const pointMatters = !types.every((t) => ['small', 'tall', 'all'].includes(t));
+  const pointMatters = !types.every(isAts);
   const keyOf = (t) => JSON.stringify([
     pointMatters ? t.point : null,
     ats ? sorted(t.atsNumbers) : null,
@@ -68,7 +69,12 @@ function setup(rules, bets, { point = null, on = false } = {}) {
   for (const [key, amount] of bets.filter((b) => !needsPoint(b))) assert.ok(t.placeBet(key, amount).ok, key);
   if (point) t.point = point;
   for (const [key, amount] of bets.filter(needsPoint)) assert.ok(t.placeBet(key, amount).ok, key);
-  if (on) for (const [key] of bets) if (t.def(t.bets[key]).toggle === 'bet' && !t.isWorking(t.bets[key])) t.toggleWorking(key);
+  if (on) {
+    for (const [key] of bets) {
+      const bet = t.bets[key];
+      if (t.def(bet).toggle === 'bet' && !t.isWorking(bet)) t.toggleWorking(key);
+    }
+  }
   return t;
 }
 
@@ -138,14 +144,11 @@ test('exact EV: Small and Tall 7.76%, All 7.46%', () => {
 
 test('exact EV: odds add nothing to the house edge (0%), on every point, both sides', () => {
   for (const n of POINTS) {
-    const flatPass = exactEV(setup({}, [['pass', 10]], { point: n }));
-    const t = setup({}, [['pass', 10]], { point: n });
-    assert.ok(t.placeOdds('pass', maxOdds(DEFAULT_RULES, n, 10)).ok);
-    close(exactEV(t), flatPass, `pass odds on ${n}`);
-
-    const flatDont = exactEV(setup({}, [['dontPass', 10]], { point: n }));
-    const u = setup({}, [['dontPass', 10]], { point: n });
-    assert.ok(u.placeOdds('dontPass', maxLay(DEFAULT_RULES, n, 10)).ok);
-    close(exactEV(u), flatDont, `lay odds on ${n}`);
+    for (const [key, max, label] of [['pass', maxOdds, 'pass odds'], ['dontPass', maxLay, 'lay odds']]) {
+      const flat = exactEV(setup({}, [[key, 10]], { point: n }));
+      const t = setup({}, [[key, 10]], { point: n });
+      assert.ok(t.placeOdds(key, max(DEFAULT_RULES, n, 10)).ok);
+      close(exactEV(t), flat, `${label} on ${n}`);
+    }
   }
 });

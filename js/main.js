@@ -66,10 +66,11 @@ function renderCenter() {
 function render() {
   const issues = table.issues();
   const blocked = issues.some((i) => i.level === 'error');
-  const pl = table.bankroll + table.totalOnTable() - stats.start;
+  const onTable = table.totalOnTable();
+  const pl = table.bankroll + onTable - stats.start;
   renderTable(table, issues);
   $('bankroll').textContent = money(table.bankroll);
-  $('on-table').textContent = money(table.totalOnTable());
+  $('on-table').textContent = money(onTable);
   $('session').textContent = signed(pl);
   $('session').className = signClass(pl);
   $('point-label').textContent = table.point ?? 'OFF';
@@ -78,7 +79,7 @@ function render() {
   renderBetList($('bet-list'), table, issues);
   const count = Object.keys(table.bets).length;
   $('bet-count').textContent = count ? `(${count})` : '';
-  $('bets-on-table').textContent = money(table.totalOnTable());
+  $('bets-on-table').textContent = money(onTable);
   const centerOn = table.betList().reduce((s, b) => (propKeys.has(b.key) ? s + b.amount : s), 0);
   $('center-on').textContent = centerOn ? `${money(centerOn)} bet here` : '';
   renderIssues($('issues'), issues);
@@ -105,15 +106,23 @@ function renderStatus() {
   showDice($('dice'), lastRoll.d1, lastRoll.d2);
   $('call').textContent = lastRoll.call;
   const net = $('roll-net');
-  net.textContent = lastRoll.net > 0 ? `+${money(lastRoll.net)}` : lastRoll.net < 0 ? `−${money(-lastRoll.net)}` : '';
+  net.textContent = lastRoll.net ? signed(lastRoll.net) : '';
   net.className = `net ${lastRoll.net > 0 ? 'pos' : 'neg'}`;
   $('roll-detail').textContent = lastRoll.detail;
 }
 
+// While autoplay is running, bets can't be changed by hand.
+function autoBusy() {
+  if (auto && !auto.paused) {
+    toast('Pause autoplay to change bets.');
+    return true;
+  }
+  return false;
+}
+
 // Run one table action; keep an undo snapshot if it worked, explain if it didn't.
 function act(fn) {
-  if (rolling) return;
-  if (auto && !auto.paused) return toast('Pause autoplay to change bets.');
+  if (rolling || autoBusy()) return;
   const snap = table.snapshot();
   const res = fn();
   if (res.ok) {
@@ -122,6 +131,12 @@ function act(fn) {
   } else {
     toast(res.error);
   }
+  render();
+}
+
+function selectChip(value) {
+  chip = value;
+  save();
   render();
 }
 
@@ -186,8 +201,8 @@ function handleAction(action, key, part, el) {
     case 'odds-down': return act(() => table.removeOdds(key, Math.min(table.oddsInfo(bet).step, bet.odds)));
     case 'odds-max': return act(() => setTo(key, 'odds', table.oddsInfo(bet).max));
     case 'edit':
-      if (auto && !auto.paused) return toast('Pause autoplay to change bets.');
-      return rolling ? null : editAmount(el);
+      if (autoBusy() || rolling) return;
+      return editAmount(el);
     case 'why': return toast(el.dataset.why);
     case 'add': return act(() => table.placeBet(key, chip));
     case 'down': return act(() => table.removeBet(key));
@@ -215,8 +230,7 @@ async function roll(fast = false) {
   }
   rolling = true;
   $('dice').classList.remove('idle');
-  closeMenu();
-  closeSheets();
+  closeAll();
   render();
   const [d1, d2] = forcedDice() ?? cryptoRoll();
   await animateDice($('dice'), d1, d2, prefs.fastRoll || fast);
@@ -245,8 +259,7 @@ function renderAutoBar() {
 
 function startAuto(strategy, speed, limit) {
   auto = { strategy, runner: createRunner(strategy), speed, limit, rolls: 0, paused: false };
-  closeMenu();
-  closeSheets();
+  closeAll();
   renderAutoBar();
   autoLoop();
 }
@@ -304,6 +317,11 @@ function closeMenu() {
   $('spot-menu').hidden = true;
 }
 
+function closeAll() {
+  closeMenu();
+  closeSheets();
+}
+
 function wireEvents() {
   let pressTimer = null;
   let pressStart = null;
@@ -321,15 +339,12 @@ function wireEvents() {
       menuSpot.help = menuSpot.help === t.dataset.help ? null : t.dataset.help;
       render();
     } else if (t.dataset.chip) {
-      chip = Number(t.dataset.chip);
-      save();
-      render();
+      selectChip(Number(t.dataset.chip));
     } else if (t.dataset.sheet) {
       closeMenu();
       openSheet(t.dataset.sheet);
     } else if ('close' in t.dataset) {
-      closeMenu();
-      closeSheets();
+      closeAll();
     } else if (t.dataset.action) {
       handleAction(t.dataset.action, t.dataset.key, t.dataset.part, t);
     } else if (t.dataset.odds) {
@@ -379,15 +394,12 @@ function wireEvents() {
       e.preventDefault();
       if (!e.repeat) auto ? togglePause() : roll();
     } else if (e.key >= '1' && e.key <= '6' && !e.metaKey && !e.ctrlKey) {
-      chip = CHIP_VALUES[Number(e.key) - 1];
-      save();
-      render();
+      selectChip(CHIP_VALUES[Number(e.key) - 1]);
     } else if (e.key === 'z' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       undo();
     } else if (e.key === 'Escape') {
-      closeMenu();
-      closeSheets();
+      closeAll();
     }
   });
   document.addEventListener('keyup', (e) => {

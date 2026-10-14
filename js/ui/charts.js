@@ -3,7 +3,12 @@
 import { esc } from './html.js';
 
 const MINUS = '−';
-export const signed = (n) => `${n > 0 ? '+' : n < 0 ? MINUS : ''}$${Math.abs(Math.round(n)).toLocaleString('en-US')}`;
+export function signed(n) {
+  let sign = '';
+  if (n > 0) sign = '+';
+  else if (n < 0) sign = MINUS;
+  return `${sign}$${Math.abs(Math.round(n)).toLocaleString('en-US')}`;
+}
 const compact = (n) => {
   const a = Math.abs(n);
   const body = a >= 1000 ? `${+(a / 1000).toFixed(a % 1000 ? 1 : 0)}K` : String(Math.round(a));
@@ -141,15 +146,15 @@ export function fanChart(el, series, span) {
     <text class="tick" x="${pad.l - 8}" y="${y(t) + 4}" text-anchor="end">${compact(t)}</text>`).join('');
   svg += xt.map((t) => `<text class="tick" x="${x(t)}" y="${H - pad.b + 20}" text-anchor="middle">${t}</text>`).join('');
   svg += `<text class="axis-title" x="${W - pad.r}" y="${H - 2}" text-anchor="end">roll</text>`;
+  // "x,y" points for one percentile of a series, starting from $0 at roll 0.
+  const points = (s, key) => [`${x(0)},${y(0)}`, ...s.bands.map((b, i) => `${x(rollAt(i))},${y(b[key])}`)];
   for (const s of series) {
-    const pts = (key) => [[0, 0], ...s.bands.map((b, i) => [rollAt(i), b[key]])];
-    const upper = pts('p90').map(([r, v]) => `${x(r)},${y(v)}`);
-    const lower = pts('p10').reverse().map(([r, v]) => `${x(r)},${y(v)}`);
+    const upper = points(s, 'p90');
+    const lower = points(s, 'p10').reverse();
     svg += `<path d="M${upper.join('L')}L${lower.join('L')}Z" fill="${s.color}" fill-opacity="0.1"/>`;
   }
   for (const s of series) {
-    const line = [[0, 0], ...s.bands.map((b, i) => [rollAt(i), b.p50])].map(([r, v]) => `${x(r)},${y(v)}`).join('L');
-    svg += `<path d="M${line}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    svg += `<path d="M${points(s, 'p50').join('L')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
   }
   svg += `<g class="cross" visibility="hidden"><line class="crosshair" y1="${pad.t}" y2="${pad.t + plotH}"/>
     ${series.map((s) => `<circle r="4" fill="${s.color}" class="ringed"/>`).join('')}</g>
@@ -248,9 +253,9 @@ export function histograms(el, series, bins = 28) {
       const s = series[+h.dataset.s];
       const b = +h.dataset.b;
       const from = lo + b * width;
-      const range = b === 0 ? `${signed(from + width)} or less`
-        : b === bins - 1 ? `${signed(from)} or more`
-        : `${signed(from)} to ${signed(from + width)}`;
+      let range = `${signed(from)} to ${signed(from + width)}`;
+      if (b === 0) range = `${signed(from + width)} or less`;
+      else if (b === bins - 1) range = `${signed(from)} or more`;
       showTip(e.clientX, e.clientY, s.name, [{ color: s.color, label: `of sessions ended ${range}`, value: `${(counts[+h.dataset.s][b] * 100).toFixed(1)}%` }]);
     });
     h.addEventListener('pointerleave', hideTip);

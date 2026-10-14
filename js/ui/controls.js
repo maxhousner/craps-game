@@ -40,17 +40,16 @@ export function animateDice(el, d1, d2, fast) {
   });
 }
 
+// Numbers that can roll hard or easy get their call from WORDS; the rest have a fixed call.
 const WORDS = { 4: 'Four', 6: 'Six', 8: 'Eight', 10: 'Ten' };
+const CALLS = {
+  2: 'Aces! Snake eyes.', 3: 'Ace-deuce, three.', 5: 'Five, no field five.', 7: 'Seven.',
+  9: 'Nine, center field nine.', 11: 'Yo-leven!', 12: 'Twelve, boxcars!',
+};
 
 export function stickmanCall({ d1, d2, total, pointBefore }, rules) {
-  let name;
+  let name = CALLS[total];
   if (WORDS[total]) name = d1 === d2 ? `${WORDS[total]} the hard way!` : `${WORDS[total]}, easy ${WORDS[total].toLowerCase()}.`;
-  else {
-    name = {
-      2: 'Aces! Snake eyes.', 3: 'Ace-deuce, three.', 5: 'Five, no field five.', 7: 'Seven.',
-      9: 'Nine, center field nine.', 11: 'Yo-leven!', 12: 'Twelve, boxcars!',
-    }[total];
-  }
   if (pointBefore == null) {
     if (total === 7 || total === 11) return `${name} Winner on the come-out, pay the line!`;
     if ([2, 3, 12].includes(total)) {
@@ -69,7 +68,8 @@ export function resultsText(results, table) {
     if (r.outcome === 'move') return `${table.label(r.from)} → ${r.to}`;
     const label = table.label(r.key);
     if (r.outcome === 'push') return `${label} push`;
-    return `${label} ${r.outcome === 'win' ? '+' : '−'}${money(r.outcome === 'win' ? r.win : r.lost)}`;
+    if (r.outcome === 'win') return `${label} +${money(r.win)}`;
+    return `${label} −${money(r.lost)}`;
   }).join(' · ');
 }
 
@@ -87,14 +87,19 @@ function stepper(bet, part, label, amount, { up, down, why = {} }) {
   const btn = (action, text, aria, off = false) =>
     `<button class="step" data-action="${action}" data-key="${bet.key}" aria-label="${aria}"${off ? ' disabled' : ''}>${text}</button>`;
   const lock = (reason) => `<button class="step lock-btn" data-action="why" data-why="${attr(reason)}" aria-label="Locked: ${attr(reason)}">${LOCK_SVG}</button>`;
-  const editable = up || down;
-  const amt = editable
+  // One side of the stepper: a working button, a padlock, or a disabled button.
+  const side = (dir, sign, verb, by, reason) => {
+    if (by) return btn(`${part}-${dir}`, sign, `${verb} ${label} by ${money(by)}`);
+    if (reason) return lock(reason);
+    return btn('', sign, `${verb} ${label}`, true);
+  };
+  const amt = up || down
     ? `<button class="amt" data-action="edit" data-key="${bet.key}" data-part="${part}" data-value="${amount}" aria-label="${label} ${money(amount)}. Tap to type an amount.">${money(amount)}</button>`
     : `<span class="amt">${money(amount)}</span>`;
   return `<div class="stepper">
-    ${down ? btn(`${part}-down`, '−', `Lower ${label} by ${money(down)}`) : why.down ? lock(why.down) : btn('', '−', `Lower ${label}`, true)}
+    ${side('down', '−', 'Lower', down, why.down)}
     ${amt}
-    ${up ? btn(`${part}-up`, '+', `Raise ${label} by ${money(up)}`) : why.up ? lock(why.up) : btn('', '+', `Raise ${label}`, true)}
+    ${side('up', '+', 'Raise', up, why.up)}
   </div>`;
 }
 
@@ -115,7 +120,15 @@ function betRow(table, bet, issues) {
     `<button class="tool${cls}" data-action="${action}" data-key="${bet.key}" aria-label="${aria}">${text}</button>`;
   // Contract: part (or all) of the bet can't come down. Chips added since the last roll still can.
   const lockedWhy = removable < bet.amount ? def.locked(table, bet) : null;
-  const tag = addWhy && !removable ? 'Locked' : !addWhy && lockedWhy ? 'Contract' : '';
+  let tag = '';
+  let tagWhy = '';
+  if (addWhy && !removable) {
+    tag = 'Locked';
+    tagWhy = `${lockedWhy} ${addWhy}`;
+  } else if (!addWhy && lockedWhy) {
+    tag = 'Contract';
+    tagWhy = removable ? `${lockedWhy} Chips added since the last roll can still come off.` : lockedWhy;
+  }
 
   let oddsRow = '';
   if (info) {
@@ -146,7 +159,7 @@ function betRow(table, bet, issues) {
           up: !addWhy && step, down: removable && Math.min(step, removable),
           why: { up: addWhy, down: removable ? null : lockedWhy },
         })}
-        ${tag ? `<button class="lock-tag" data-action="why" data-why="${attr(tag === 'Locked' ? `${lockedWhy} ${addWhy}` : removable ? `${lockedWhy} Chips added since the last roll can still come off.` : lockedWhy)}">${LOCK_SVG}${tag}</button>` : ''}
+        ${tag ? `<button class="lock-tag" data-action="why" data-why="${attr(tagWhy)}">${LOCK_SVG}${tag}</button>` : ''}
       </div>
       ${oddsRow}
       ${issues.filter((i) => i.key === bet.key).map(issueHTML).join('')}

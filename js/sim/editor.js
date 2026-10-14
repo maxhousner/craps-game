@@ -144,6 +144,7 @@ export function openEditor(dialog, strategy, { onSave, onDelete = null, saved = 
       </div>
     </form>`;
 
+  const form = dialog.querySelector('form');
   const plansEl = dialog.querySelector('#plans');
   const render = () => {
     plansEl.innerHTML = draft.plans.length
@@ -153,12 +154,12 @@ export function openEditor(dialog, strategy, { onSave, onDelete = null, saved = 
   const planOf = (el) => draft.plans[+el.closest('.plan-card').dataset.i];
 
   // Enter in a text box shouldn't close the builder.
-  dialog.querySelector('form').addEventListener('submit', (e) => e.preventDefault());
-  dialog.querySelector('form').addEventListener('input', (e) => {
+  form.addEventListener('submit', (e) => e.preventDefault());
+  form.addEventListener('input', (e) => {
     if (e.target.name === 'name') draft.name = e.target.value;
     if (e.target.name === 'notes') draft.notes = e.target.value;
   });
-  dialog.querySelector('form').addEventListener('change', (e) => {
+  form.addEventListener('change', (e) => {
     const t = e.target;
     if (t.id === 'add-plan' && t.value) {
       draft.plans.push({ bet: t.value, ...structuredClone(NEW_PLAN[t.value]) });
@@ -185,7 +186,7 @@ export function openEditor(dialog, strategy, { onSave, onDelete = null, saved = 
       render();
     }
   });
-  dialog.querySelector('form').addEventListener('click', (e) => {
+  form.addEventListener('click', (e) => {
     const t = e.target.closest('button');
     if (!t) return;
     if (t.dataset.number) {

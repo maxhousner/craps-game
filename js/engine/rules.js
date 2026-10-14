@@ -58,8 +58,10 @@ export function roundUpTo(x, step) {
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 export const lcm = (a, b) => (a * b) / gcd(a, b);
 
+const THREE_FOUR_FIVE = { 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3 };
+
 export function oddsMultiplier(rules, number) {
-  if (rules.oddsMultiple === '345') return { 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3 }[number];
+  if (rules.oddsMultiple === '345') return THREE_FOUR_FIVE[number];
   return Number(rules.oddsMultiple);
 }
 
@@ -88,10 +90,12 @@ export function hopPays(rules, a, b) {
   return longShot(rules, a === b ? 30 : 15);
 }
 
+const FIELD_EVEN_MONEY = [3, 4, 9, 10, 11];
+
 export function fieldPays(rules, total) {
   if (total === 2) return 2;
   if (total === 12) return rules.field12Pays;
-  return [3, 4, 9, 10, 11].includes(total) ? 1 : 0;
+  return FIELD_EVEN_MONEY.includes(total) ? 1 : 0;
 }
 
 export function atsPays(rules, kind) {

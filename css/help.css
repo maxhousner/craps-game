@@ -108,8 +108,7 @@ table { border-collapse: collapse; font-size: 14px; }
 
 /* Table map: the real felt, used as links */
 .help-map { display: grid; gap: 14px; justify-items: center; }
-.help-map .felt { width: 100%; }
-.help-map .center { width: 100%; }
+.help-map .felt, .help-map .center { width: 100%; }
 .help-map .sheet-close, .mini-map .sheet-close { display: none !important; }
 
 /* Mini maps in each bet card: the real table, shrunk, with that bet's spots lit. */

@@ -158,7 +158,8 @@ export function renderTable(table, issues) {
       continue;
     }
     let cls = '';
-    if (def.toggle === 'bet') cls = working ? (bet.working === true ? 'on' : '') : 'off';
+    if (def.toggle === 'bet' && !working) cls = 'off';
+    else if (def.toggle === 'bet' && bet.working === true) cls = 'on';
     spotEl(bet.key).querySelector('.chips').innerHTML = chipHTML(bet.amount, cls);
     if (bet.odds && (bet.type === 'pass' || bet.type === 'dontPass')) {
       spotEl(bet.key, 'odds').querySelector('.chips').innerHTML = chipHTML(bet.odds, 'odds');
@@ -170,10 +171,11 @@ export function renderTable(table, issues) {
     spotEl(key, 'odds').classList.toggle('unavailable', !(bet && table.oddsInfo(bet)));
   }
 
-  const puck = table.point
-    ? [document.querySelector(`.box[data-number="${table.point}"] .puck-slot`), '<span class="puck on">ON</span>']
-    : [document.querySelector('.dc-spot .puck-slot'), '<span class="puck off">OFF</span>'];
-  puck[0].innerHTML = puck[1];
+  if (table.point) {
+    document.querySelector(`.box[data-number="${table.point}"] .puck-slot`).innerHTML = '<span class="puck on">ON</span>';
+  } else {
+    document.querySelector('.dc-spot .puck-slot').innerHTML = '<span class="puck off">OFF</span>';
+  }
 
   for (const issue of issues) spotEl(issue.key, issue.part)?.classList.add(`issue-${issue.level}`);
 
@@ -191,7 +193,9 @@ export function showMarkers(results) {
     if (!el) continue;
     const m = document.createElement('span');
     m.className = `marker ${r.outcome}`;
-    m.textContent = r.outcome === 'win' ? `+${money(r.win)}` : r.outcome === 'lose' ? `−${money(r.lost)}` : 'Push';
+    if (r.outcome === 'win') m.textContent = `+${money(r.win)}`;
+    else if (r.outcome === 'lose') m.textContent = `−${money(r.lost)}`;
+    else m.textContent = 'Push';
     el.append(m);
     setTimeout(() => m.remove(), 2500); // matches the float-up animation
   }

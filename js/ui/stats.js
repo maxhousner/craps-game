@@ -24,8 +24,17 @@ export function recordRoll(s, res) {
   s.worstRoll = Math.min(s.worstRoll, res.net);
 }
 
-export const signed = (n) => (n > 0 ? `+${money(n)}` : n < 0 ? `−${money(-n)}` : money(0));
-export const signClass = (n) => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
+export function signed(n) {
+  if (n > 0) return `+${money(n)}`;
+  if (n < 0) return `−${money(-n)}`;
+  return money(0);
+}
+
+export function signClass(n) {
+  if (n > 0) return 'pos';
+  if (n < 0) return 'neg';
+  return '';
+}
 
 export function renderStats(el, s, table) {
   const pl = table.bankroll + table.totalOnTable() - s.start;
@@ -65,7 +74,10 @@ export function renderHistory(el, history) {
       h.pointSet ? 'set' : '',
       h.d1 === h.d2 ? 'hard' : '',
     ].join(' ');
-    const what = h.sevenOut ? ', seven out' : h.pointMade ? ', point made' : h.pointSet ? ', point set' : '';
+    let what = '';
+    if (h.sevenOut) what = ', seven out';
+    else if (h.pointMade) what = ', point made';
+    else if (h.pointSet) what = ', point set';
     return `<li class="h ${cls}" title="${h.d1} + ${h.d2}${what}" aria-label="${h.total} (${h.d1} and ${h.d2})${what}">${h.total}</li>`;
   }).join('');
 }

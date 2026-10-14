@@ -2,6 +2,7 @@
 // resolve(table, bet, dice, ctx) returns null (no action) or a result:
 //   { outcome: 'win', win }                 paid; the bet stays up
 //   { outcome: 'win', win, returned, down } paid and the bet comes down
+//   { outcome: 'win', win, returned, clearOdds } paid; the flat stays up, the odds come down
 //   { outcome: 'lose', lost, returned }     bet comes down (returned = odds that were off)
 //   { outcome: 'push' }                     no action, bet stays
 //   { outcome: 'move', to }                 come / don't come bet travels to a number
@@ -14,6 +15,7 @@ import {
 
 const win = (amount) => ({ outcome: 'win', win: amount });
 const winDown = (b, amount) => ({ outcome: 'win', win: amount, returned: b.amount + b.odds, down: true });
+const winClearOdds = (b, amount) => ({ outcome: 'win', win: amount, returned: b.odds, clearOdds: true });
 const lose = (b, returned = 0) => ({
   outcome: 'lose', lost: b.amount + b.odds + b.vigPaid - returned, returned, down: true,
 });
@@ -40,9 +42,7 @@ const pass = {
       if (CRAPS.includes(total)) return lose(b);
       return null;
     }
-    if (total === t.point) {
-      return { outcome: 'win', win: this.hitWin(t, b), returned: b.odds, clearOdds: true };
-    }
+    if (total === t.point) return winClearOdds(b, this.hitWin(t, b));
     return total === 7 ? lose(b) : null;
   },
 };
@@ -62,9 +62,7 @@ const dontPass = {
       if (total === 7 || total === 11) return lose(b);
       return null;
     }
-    if (total === 7) {
-      return { outcome: 'win', win: this.hitWin(t, b), returned: b.odds, clearOdds: true };
-    }
+    if (total === 7) return winClearOdds(b, this.hitWin(t, b));
     return total === t.point ? lose(b) : null;
   },
 };
@@ -126,6 +124,12 @@ const dontCome = {
   },
 };
 
+// Place, buy and big bets: win on the number, lose on a 7.
+function numberResolve(t, b, { total }) {
+  if (total === b.number) return win(this.hitWin(t, b));
+  return total === 7 ? lose(b) : null;
+}
+
 const place = {
   label: (b) => `Place ${b.number}`,
   pays: (r, b) => ratioText(PLACE_PAYS[b.number]),
@@ -136,10 +140,7 @@ const place = {
   defaultWorking: pointOn,
   conflicts: (b) => [`buy:${b.number}`],
   hitWin: (t, b) => pay(b.amount, PLACE_PAYS[b.number]),
-  resolve(t, b, { total }) {
-    if (total === b.number) return win(this.hitWin(t, b));
-    return total === 7 ? lose(b) : null;
-  },
+  resolve: numberResolve,
 };
 
 // Buy: true odds, 5% of the bet as commission. With vig up front, a win pays
@@ -155,10 +156,7 @@ const buy = {
   conflicts: (b) => [`place:${b.number}`],
   upfrontVig: (r, b) => (r.buyVig === 'upfront' ? vig(b.amount) : 0),
   hitWin: (t, b) => pay(b.amount, TRUE_ODDS[b.number]) - vig(b.amount),
-  resolve(t, b, { total }) {
-    if (total === b.number) return win(this.hitWin(t, b));
-    return total === 7 ? lose(b) : null;
-  },
+  resolve: numberResolve,
 };
 
 // Lay: true odds against the number, 5% of the win as commission.
@@ -190,10 +188,7 @@ const big = {
   toggle: 'bet',
   defaultWorking: always,
   hitWin: (t, b) => b.amount,
-  resolve(t, b, { total }) {
-    if (total === b.number) return win(this.hitWin(t, b));
-    return total === 7 ? lose(b) : null;
-  },
+  resolve: numberResolve,
 };
 
 const hard = {
@@ -209,12 +204,12 @@ const hard = {
   },
 };
 
-// One-roll bets: net(rules, bet, dice) returns the win, 0 for a push, or null for a loss.
+// One-roll bets: net(table, bet, dice) returns the win, 0 for a push, or null for a loss.
 function oneRoll(spec) {
   return {
     ...spec,
     resolve(t, b, dice) {
-      const w = spec.net(t.rules, b, dice);
+      const w = this.net(t, b, dice);
       if (w == null) return lose(b);
       return w === 0 ? push() : win(w);
     },
@@ -225,8 +220,8 @@ const field = oneRoll({
   label: () => 'Field',
   pays: (r) => `1 to 1 · 2 pays 2 to 1 · 12 pays ${r.field12Pays} to 1`,
   min: (r) => r.tableMin,
-  net(r, b, { total }) {
-    const k = fieldPays(r, total);
+  net(t, b, { total }) {
+    const k = fieldPays(t.rules, total);
     return k ? b.amount * k : null;
   },
 });
@@ -235,14 +230,18 @@ const any7 = oneRoll({
   label: () => 'Any Seven',
   pays: () => '4 to 1',
   hitWin: (t, b) => b.amount * 4,
-  net: (r, b, { total }) => (total === 7 ? b.amount * 4 : null),
+  net(t, b, { total }) {
+    return total === 7 ? this.hitWin(t, b) : null;
+  },
 });
 
 const anyCraps = oneRoll({
   label: () => 'Any Craps',
   pays: () => '7 to 1',
   hitWin: (t, b) => b.amount * 7,
-  net: (r, b, { total }) => (CRAPS.includes(total) ? b.amount * 7 : null),
+  net(t, b, { total }) {
+    return CRAPS.includes(total) ? this.hitWin(t, b) : null;
+  },
 });
 
 const num = oneRoll({
@@ -250,7 +249,9 @@ const num = oneRoll({
   pays: (r, b) => `${numberBetPays(r, b.number)} to 1`,
   numbers: HORN,
   hitWin: (t, b) => b.amount * numberBetPays(t.rules, b.number),
-  net: (r, b, { total }) => (total === b.number ? b.amount * numberBetPays(r, total) : null),
+  net(t, b, { total }) {
+    return total === b.number ? this.hitWin(t, b) : null;
+  },
 });
 
 // Horn: one unit each on 2, 3, 11 and 12. The winning unit is paid, the other three lose.
@@ -258,10 +259,10 @@ const horn = oneRoll({
   label: () => 'Horn',
   pays: (r) => `2 & 12 net ${numberBetPays(r, 2) - 3}u · 3 & 11 net ${numberBetPays(r, 3) - 3}u`,
   multiple: 4,
-  net(r, b, { total }) {
+  net(t, b, { total }) {
     if (!HORN.includes(total)) return null;
     const u = b.amount / 4;
-    return u * numberBetPays(r, total) - 3 * u;
+    return u * numberBetPays(t.rules, total) - 3 * u;
   },
 });
 
@@ -271,11 +272,11 @@ const hornHigh = oneRoll({
   pays: () => 'Horn with 2 units on the high number',
   multiple: 5,
   numbers: HORN,
-  net(r, b, { total }) {
+  net(t, b, { total }) {
     if (!HORN.includes(total)) return null;
     const u = b.amount / 5;
     const units = total === b.number ? 2 : 1;
-    return u * units * numberBetPays(r, total) - (5 - units) * u;
+    return u * units * numberBetPays(t.rules, total) - (5 - units) * u;
   },
 });
 
@@ -284,10 +285,10 @@ const world = oneRoll({
   label: () => 'World',
   pays: () => 'Horn + Any Seven · 7 pushes',
   multiple: 5,
-  net(r, b, { total }) {
+  net(t, b, { total }) {
     const u = b.amount / 5;
     if (total === 7) return 0;
-    return HORN.includes(total) ? u * numberBetPays(r, total) - 4 * u : null;
+    return HORN.includes(total) ? u * numberBetPays(t.rules, total) - 4 * u : null;
   },
 });
 
@@ -296,10 +297,10 @@ const ce = oneRoll({
   label: () => 'C & E',
   pays: (r) => `Craps net 3 to 1 · 11 net ${(numberBetPays(r, 11) - 1) / 2} to 1`,
   multiple: 2,
-  net(r, b, { total }) {
+  net(t, b, { total }) {
     const u = b.amount / 2;
     if (CRAPS.includes(total)) return u * 7 - u;
-    return total === 11 ? u * numberBetPays(r, 11) - u : null;
+    return total === 11 ? u * numberBetPays(t.rules, 11) - u : null;
   },
 });
 
@@ -307,10 +308,10 @@ const hop = oneRoll({
   label: (b) => `Hop ${b.dice[0]}-${b.dice[1]}`,
   pays: (r, b) => `${hopPays(r, ...b.dice)} to 1`,
   hitWin: (t, b) => b.amount * hopPays(t.rules, ...b.dice),
-  net(r, b, { d1, d2 }) {
+  net(t, b, { d1, d2 }) {
     const [a, c] = b.dice;
     const hit = (d1 === a && d2 === c) || (d1 === c && d2 === a);
-    return hit ? b.amount * hopPays(r, a, c) : null;
+    return hit ? this.hitWin(t, b) : null;
   },
 });
 
@@ -344,8 +345,8 @@ function ats(kind, name) {
     hitWin: (t, b) => b.amount * atsPays(t.rules, kind),
     resolve(t, b, { total }) {
       if (total === 7) return lose(b);
-      const hit = new Set([...t.atsNumbers, total]);
-      return ATS_NUMBERS[kind].every((n) => hit.has(n)) ? winDown(b, b.amount * atsPays(t.rules, kind)) : null;
+      const hit = ATS_NUMBERS[kind].every((n) => n === total || t.atsNumbers.includes(n));
+      return hit ? winDown(b, this.hitWin(t, b)) : null;
     },
   };
 }

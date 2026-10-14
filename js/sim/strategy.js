@@ -45,12 +45,15 @@ export function planKeys(plan) {
   return [plan.bet];
 }
 
+// A number can be placed or bought, not both.
+const TWIN = { place: 'buy', buy: 'place' };
+
 // Plain-English problems with a strategy (empty list = OK to run).
 export function validateStrategy(s) {
   const errors = [];
   if (!s.name?.trim()) errors.push('Give the strategy a name.');
   if (!s.plans?.length) errors.push('Add at least one bet.');
-  const seen = new Map();
+  const seen = new Set();
   for (const plan of s.plans ?? []) {
     const kind = BET_KINDS[plan.bet];
     if (!kind) {
@@ -61,10 +64,10 @@ export function validateStrategy(s) {
     if (kind.numbers && !plan.numbers?.length) errors.push(`${kind.label}: pick at least one number.`);
     if (kind.group === 'come' && !(plan.count >= 1 && plan.count <= 6)) errors.push(`${kind.label}: keep 1 to 6 bets working.`);
     for (const key of planKeys(plan)) {
-      const twin = key.startsWith('place:') ? key.replace('place', 'buy') : key.startsWith('buy:') ? key.replace('buy', 'place') : null;
+      const n = key.split(':')[1];
       if (seen.has(key)) errors.push(`${labelFor(key)} is in two bet rows. Each bet can only be in one.`);
-      else if (twin && seen.has(twin)) errors.push(`The ${key.split(':')[1]} can be placed or bought, not both.`);
-      seen.set(key, true);
+      else if (TWIN[plan.bet] && seen.has(`${TWIN[plan.bet]}:${n}`)) errors.push(`The ${n} can be placed or bought, not both.`);
+      seen.add(key);
     }
   }
   return errors;
@@ -84,12 +87,17 @@ export function unofferedNote(strategy, rules) {
     : `${off.join(' and ')} aren't offered under these house rules, so they're skipped.`;
 }
 
-const ORDINAL = (n) => (n === 1 ? '' : n === 2 ? '2nd ' : n === 3 ? '3rd ' : `${n}th `);
+// "2nd", "3rd", "4th"... (progressions repeat every 1 to 5 wins).
+function ordinal(n) {
+  if (n === 2) return '2nd';
+  if (n === 3) return '3rd';
+  return `${n}th`;
+}
 
 function describeProgression(p, plan) {
   if (!p) return '';
   const parts = [];
-  const every = p.every > 1 ? `every ${ORDINAL(p.every)}win` : 'every win';
+  const every = p.every > 1 ? `every ${ordinal(p.every)} win` : 'every win';
   if (p.onWin === 'press') parts.push(`press ${every}`);
   else if (p.onWin === 'halfPress') parts.push(`half-press ${every}`);
   else if (p.onWin === 'addUnit') parts.push(`add ${money(plan.amount)} ${every}`);
@@ -104,7 +112,11 @@ function describeProgression(p, plan) {
   return parts.join(', ');
 }
 
-const ODDS_TEXT = (odds, lay) => (!odds || odds === 'none' ? '' : odds === 'max' ? ` + max ${lay ? 'lay ' : ''}odds` : ` + ${odds}x ${lay ? 'lay ' : ''}odds`);
+function oddsText(odds, lay) {
+  if (!odds || odds === 'none') return '';
+  return ` + ${odds === 'max' ? 'max' : `${odds}x`} ${lay ? 'lay ' : ''}odds`;
+}
+
 const WHEN_TEXT = { always: 'every roll', point: 'while a point is on', comeOut: 'on come-out rolls' };
 
 // One line of plain English per plan, for strategy cards and the autoplay picker.
@@ -114,10 +126,10 @@ export function describePlan(plan) {
   let text;
   switch (kind.group) {
     case 'line':
-      text = `${kind.label} ${amt}${ODDS_TEXT(plan.odds, plan.bet === 'dontPass')}`;
+      text = `${kind.label} ${amt}${oddsText(plan.odds, plan.bet === 'dontPass')}`;
       break;
     case 'come':
-      text = `Up to ${plan.count} ${kind.label} bet${plan.count > 1 ? 's' : ''} ${amt}${ODDS_TEXT(plan.odds, plan.bet === 'dontCome')}`;
+      text = `Up to ${plan.count} ${kind.label} bet${plan.count > 1 ? 's' : ''} ${amt}${oddsText(plan.odds, plan.bet === 'dontCome')}`;
       if (plan.oddsOnComeOut) text += ', odds working on the come-out';
       break;
     case 'number':
@@ -285,8 +297,9 @@ function step(p, s, base, outcome) {
       s.wins = 0;
       return;
     }
-    if (s.wins % (p.every || 1) !== 0) return;
-    const presses = s.wins / (p.every || 1);
+    const every = p.every || 1;
+    if (s.wins % every !== 0) return;
+    const presses = s.wins / every;
     switch (p.onWin) {
       case 'press': s.amount *= 2; break;
       case 'halfPress': s.amount *= 1.5; break;

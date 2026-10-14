@@ -58,20 +58,23 @@ function saveState() {
 function renderLineup() {
   const lib = loadLibrary();
   $('lineup').innerHTML = lineup.length
-    ? lineup.map((s, i) => `
+    ? lineup.map((s, i) => {
+      const skipped = unofferedNote(s, settings.rules);
+      return `
       <article class="strategy-card">
         <span class="swatch" style="background:${COLORS[i]}"></span>
         <div>
           <h3>${esc(s.name)}</h3>
           ${s.notes ? `<p class="notes">${esc(s.notes)}</p>` : ''}
           <ul>${s.plans.map((p) => `<li>${describePlan(p)}</li>`).join('')}</ul>
-          ${unofferedNote(s, settings.rules) ? `<p class="skipped">${unofferedNote(s, settings.rules)}</p>` : ''}
+          ${skipped ? `<p class="skipped">${skipped}</p>` : ''}
         </div>
         <div class="card-actions">
           <button class="ghost" data-edit="${i}">Edit</button>
           <button class="ghost" data-remove="${i}">Remove</button>
         </div>
-      </article>`).join('')
+      </article>`;
+    }).join('')
     : '<p class="empty">Add a strategy to get started.</p>';
   const full = lineup.length >= MAX_LINEUP;
   $('add-strategy').innerHTML = `<option value="">${full ? 'Up to 4 strategies at a time' : '+ Add a strategy…'}</option>
@@ -283,7 +286,7 @@ function renderCharts() {
 }
 
 function lengthText({ length }) {
-  return `${length.value.toLocaleString('en-US')} ${length.unit === 'hours' ? 'hour' : length.unit.replace(/s$/, '')}${length.value === 1 ? '' : 's'} per session`;
+  return `${length.value.toLocaleString('en-US')} ${length.unit.replace(/s$/, '')}${length.value === 1 ? '' : 's'} per session`;
 }
 
 function showResults(r) {
@@ -308,10 +311,12 @@ function pointText(e) {
   return `Point ${e.pointBefore}`;
 }
 
+// pick: 'best' | 'median' | 'worst' | 'random', or a session index.
 function showReplay(si, pick) {
   if (!results) return;
-  const n = results.sessions;
-  const idx = pick === 'random' ? Math.floor(Math.random() * n) : typeof pick === 'number' ? pick : results.notable[si][pick];
+  let idx = pick;
+  if (pick === 'random') idx = Math.floor(Math.random() * results.sessions);
+  else if (typeof pick !== 'number') idx = results.notable[si][pick];
   document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pick === pick)));
   const s = runSession(results.strategies[si], results.settings, sessionSeed(results.seed, idx), { log: true });
   const labels = new CrapsTable(results.settings.rules);
@@ -384,8 +389,7 @@ $('lineup').addEventListener('click', (e) => {
   }
 });
 $('add-strategy').addEventListener('change', (e) => {
-  const id = e.target.value;
-  const s = findStrategy(id);
+  const s = findStrategy(e.target.value);
   if (s && lineup.length < MAX_LINEUP) {
     lineup.push(structuredClone(s));
     saveState();
@@ -402,14 +406,15 @@ $('new-seed').addEventListener('click', () => {
 $('run').addEventListener('click', run);
 $('csv-summary').addEventListener('click', summaryCsv);
 $('csv-sessions').addEventListener('click', sessionsCsv);
+const replayStrategy = () => Number($('replay-strategy').value);
 document.querySelector('.seg').addEventListener('click', (e) => {
   const b = e.target.closest('button');
-  if (b) showReplay(Number($('replay-strategy').value), b.dataset.pick);
+  if (b) showReplay(replayStrategy(), b.dataset.pick);
 });
-$('replay-strategy').addEventListener('change', () => showReplay(Number($('replay-strategy').value), 'median'));
+$('replay-strategy').addEventListener('change', () => showReplay(replayStrategy(), 'median'));
 $('replay-go').addEventListener('click', () => {
   const n = Math.min(results.sessions, Math.max(1, Math.floor(Number($('replay-n').value) || 1)));
-  showReplay(Number($('replay-strategy').value), n - 1);
+  showReplay(replayStrategy(), n - 1);
 });
 new ResizeObserver(() => {
   if (results && Math.abs($('range-chart').clientWidth - chartWidth) > 4) renderCharts();
