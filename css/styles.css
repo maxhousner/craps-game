@@ -102,10 +102,10 @@ a.brand { color: inherit; text-decoration: none; }
 /* ---------- Status: dice, call, history, bankroll meters ---------- */
 .status {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   grid-template-areas:
-    "dice call    meters"
-    "dice history meters";
+    "dice call    net     meters"
+    "dice history history meters";
   align-items: center;
   gap: 4px 16px;
   background: var(--panel);
@@ -114,18 +114,20 @@ a.brand { color: inherit; text-decoration: none; }
   padding: 10px 14px;
 }
 .dice { grid-area: dice; display: flex; gap: 10px; }
-.call { grid-area: call; }
+.call { grid-area: call; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status .net { grid-area: net; font-size: 17px; line-height: 1.2; }
 .status .meters { grid-area: meters; }
 .auto-btn {
   display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; margin-left: 8px;
   background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; font-weight: 700; font-size: 14px;
 }
 .auto-btn:hover { border-color: var(--gold); }
-.call p { margin: 0; }
 #call { font: 600 17px/1.3 var(--font-table); }
 .net { font-weight: 700; font-variant-numeric: tabular-nums; }
 .detail { color: var(--muted); font-size: 13px; }
-.history { grid-area: history; display: flex; gap: 6px; overflow-x: auto; list-style: none; margin: 0; padding: 4px 2px; scrollbar-width: thin; }
+.history { grid-area: history; display: flex; gap: 6px; overflow-x: auto; list-style: none; margin: 0; padding: 4px 2px; scrollbar-width: thin; min-height: 38px; }
+/* The row keeps its height before the first roll, so the bar doesn't grow when rolls appear. */
+.history:empty::before { content: "Your rolls will show here"; align-self: center; color: var(--muted); font-size: 13px; }
 .h {
   flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
   background: var(--panel-2); border: 1px solid var(--border); font-weight: 700; font-size: 13px; position: relative;
@@ -182,6 +184,15 @@ a.brand { color: inherit; text-decoration: none; }
     "big  field field field field field field"
     "big  dp    dp    dp    dp    dp    dp"
     "pass pass  pass  pass  pass  pass  pass";
+}
+/* Big 6/8 not offered: the field and don't pass take the whole width. */
+.felt-grid.no-big {
+  grid-template-areas:
+    "dc    n4    n5    n6    n8    n9    n10"
+    "come  come  come  come  come  come  come"
+    "field field field field field field field"
+    "dp    dp    dp    dp    dp    dp    dp"
+    "pass  pass  pass  pass  pass  pass  pass";
 }
 .spot {
   position: relative;
@@ -412,10 +423,8 @@ a.brand { color: inherit; text-decoration: none; }
     grid-column: 13; grid-row: 1 / 6; margin-left: 8px; padding-left: 14px;
     border-left: 1px dashed var(--line-soft);
   }
+  .center .props.no-side { grid-template-columns: repeat(12, minmax(0, 1fr)); }
   .center.collapsed .props { display: none; }
-  /* My Bets lives in the narrow side column: put each bet's buttons under its details. */
-  .bets-panel .bet-row { grid-template-columns: minmax(0, 1fr); }
-  .bets-panel .bet-actions { justify-content: flex-start; }
 }
 @media (min-width: 960px) and (max-width: 1239px) {
   .center .props { grid-template-columns: repeat(12, minmax(0, 1fr)); }
@@ -436,19 +445,48 @@ a.brand { color: inherit; text-decoration: none; }
 .bets-panel h2, .stats-panel h2 { font-size: 16px; margin-bottom: 8px; }
 .bets-panel h2 small { font-size: 12px; margin-left: 6px; }
 .empty, .tip { color: var(--muted); font-size: 13px; margin: 6px 0; }
-.bet-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; align-items: center;
-  padding: 10px 0; border-top: 1px solid var(--border);
-}
-.bet-row:first-child { border-top: 0; }
+.bet-row { display: grid; gap: 8px; padding: 12px 0; border-top: 1px solid var(--border); }
+.bet-row:first-child { border-top: 0; padding-top: 4px; }
 .bet-row.is-off .bet-name { color: var(--muted); }
-.bet-main { display: grid; grid-template-columns: auto 1fr; gap: 0 10px; align-items: baseline; }
+.bet-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 10px; align-items: center; }
 .bet-name { font-weight: 700; }
-.bet-amt { font-variant-numeric: tabular-nums; text-align: right; }
-.bet-meta { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.bet-meta { grid-column: 1; font-size: 12px; color: var(--muted); }
 .bet-meta b { color: var(--text); font-weight: 600; }
-.bet-actions { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
-.bet-actions button, .issue button, .fix-all, .menu-adds button, .ghost {
+.bet-tools { grid-column: 2; grid-row: 1 / span 2; display: flex; gap: 6px; }
+
+/* Steppers: − $amount + for the bet and its odds. Tap the amount to type one. */
+.step-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.step-label { width: 34px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.stepper {
+  display: inline-grid; grid-template-columns: 40px minmax(68px, auto) 40px; height: 40px;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+}
+.stepper .step { display: grid; place-items: center; padding: 0; border: 0; background: none; font-size: 20px; font-weight: 700; line-height: 1; }
+.stepper .step:not(:disabled):hover { background: rgba(255, 255, 255, 0.07); }
+.stepper .step:disabled { opacity: 0.3; }
+.stepper .lock-btn { color: var(--muted); }
+.stepper .amt {
+  display: grid; place-items: center; min-width: 0; padding: 0 10px; margin: 0;
+  border: 0; border-inline: 1px solid var(--border); border-radius: 0; background: none;
+  font: 700 15px/1 var(--font-ui); color: var(--text); font-variant-numeric: tabular-nums; text-align: center;
+}
+.stepper button.amt { cursor: text; text-decoration: underline dotted var(--muted); text-underline-offset: 4px; }
+.stepper button.amt:hover { background: rgba(255, 255, 255, 0.07); }
+.stepper .amt-input { width: 84px; background: var(--bg); -moz-appearance: textfield; appearance: textfield; }
+.stepper .amt-input:focus { outline: 2px solid var(--gold); outline-offset: -2px; }
+.stepper .amt-input::-webkit-inner-spin-button, .stepper .amt-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.lock-tag {
+  display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px;
+  background: none; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 12px; font-weight: 700;
+}
+.tool {
+  min-height: 36px; padding: 0 12px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+  font-size: 13px; font-weight: 600;
+}
+.tool.icon { width: 36px; padding: 0; }
+.tool:hover, .lock-tag:hover { border-color: var(--muted); }
+.stepper .step:active:not(:disabled), .tool:active, .ghost:active, .roll-btn:active, .rack-chip:active, .mobile-tabs button:active { transform: scale(0.97); }
+.issue button, .fix-all, .menu-adds button, .ghost {
   background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
   padding: 6px 10px; min-height: 36px; font-size: 13px; font-weight: 600;
 }
@@ -511,6 +549,7 @@ a.brand { color: inherit; text-decoration: none; }
 .auto-desc { background: var(--panel-2); border-radius: 10px; padding: 10px 14px; font-size: 13px; line-height: 1.5; }
 .auto-desc p { margin: 0 0 4px; color: var(--muted); }
 .auto-desc ul { margin: 0; padding-left: 18px; }
+.skipped, .auto-desc .skipped { margin: 6px 0 0; color: var(--amber); font-size: 13px; }
 .autoplay-form { display: grid; gap: 14px; }
 .settings.autoplay-form .note { color: var(--muted); line-height: 1.5; }
 .autoplay-form .note a { color: var(--gold); }
@@ -608,7 +647,9 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
   .auto-bar { flex-wrap: wrap; }
   .auto-status { width: 100%; }
   .meters { flex: 1; gap: 6px; margin-left: 0; }
-  .meter { flex: 1; min-width: 0; padding: 3px 8px; }
+  .meter { flex: 1 0 auto; min-width: 0; padding: 3px 8px; } /* never narrower than its number */
+  .auto-btn { flex: none; gap: 6px; margin-left: 0; padding: 0 12px; }
+  .meters.tight .auto-btn span { display: none; }
   .meter span { font-size: 10px; }
   .meter strong { font-size: 15px; }
 
@@ -620,12 +661,18 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
   }
   .status {
     grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas: "dice call" "dice history" "meters meters";
+    grid-template-areas: "dice call" "net history" "meters meters";
     gap: 6px 12px; padding: 8px 10px;
   }
   .die.big { font-size: 38px; }
   .dice { gap: 6px; }
   #call { font-size: 15px; }
+  /* Two lines for the call (and the breakdown when it fits), always, so the bar keeps one height. */
+  .call {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+    white-space: normal; height: 39px; line-height: 19.5px;
+  }
+  .status .net { justify-self: center; font-size: 15px; }
   .detail { font-size: 12px; }
 
   .felt { border-width: 6px; border-radius: 16px; padding: 8px; }
@@ -638,6 +685,14 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
       "field field field field field field"
       "dp   dp   dp   dp   big  big"
       "pass pass pass pass pass pass";
+  }
+  .felt-grid.no-big {
+    grid-template-areas:
+      "n4    n5    n6    n8    n9    n10"
+      "dc    dc    dc    come  come  come"
+      "field field field field field field"
+      "dp    dp    dp    dp    dp    dp"
+      "pass  pass  pass  pass  pass  pass";
   }
   .spot { padding: 4px; border-radius: 7px; }
   .box { grid-template-rows: 26px minmax(62px, 1fr) 26px; border-radius: 7px; }
@@ -692,7 +747,17 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
   .sheet.open { transform: none; visibility: visible; transition: transform 0.25s ease; }
   .props.sheet { border-width: 6px 6px 0; }
   .sheet-close { display: inline-grid; }
-  .bets-panel.sheet { padding-top: 10px; }
+  /* My Bets doesn't need the chip rack, so its sheet covers the dock and gets the full height. */
+  .bets-panel.sheet {
+    bottom: 0; z-index: 45; max-height: calc(100dvh - 40px);
+    padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+  }
+  .bets-panel.sheet .sheet-head {
+    position: sticky; top: 0; z-index: 1; margin: 0 -16px 4px; padding: 12px 16px 10px;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+  }
+  .bets-panel.sheet .sheet-head h2 { margin: 0; }
+  body:has(#bets.open) .backdrop { inset: 0; z-index: 42; }
   .spot-menu { bottom: var(--dock-h); width: 100%; border-radius: 18px 18px 0 0; }
 
   .dock { padding: 8px 16px calc(8px + env(safe-area-inset-bottom)); }
@@ -708,6 +773,15 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
   .field { grid-template-columns: 1fr; gap: 4px; }
 }
 
+/* Touch screens: every control at least 44px tall. */
+@media (pointer: coarse) {
+  .stepper { height: 44px; grid-template-columns: 44px minmax(68px, auto) 44px; }
+  .tool { min-height: 44px; }
+  .tool.icon { width: 44px; }
+  .lock-tag { height: 32px; }
+  .issue button, .menu-adds button { min-height: 44px; }
+}
+
 /* Smallest phones (iPhone SE 1st gen and similar) */
 @media (max-width: 500px) {
   .brand-name { display: none; }
@@ -716,6 +790,7 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 
 @media (max-width: 380px) {
   .meter.session { display: none; }
+  #call { font-size: 14px; }
   .topbar, .meters { gap: 4px; }
   .icon-btn { width: 34px; height: 34px; }
   .auto-btn { padding: 0 12px; }

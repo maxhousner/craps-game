@@ -14,6 +14,8 @@ export function savedRules() {
 
 const ODDS_LABELS = { 1: '1x', 2: '2x', 3: '3x', 345: '3-4-5x (Vegas standard)', 5: '5x', 10: '10x', 20: '20x', 100: '100x' };
 
+const OFFERED = [[true, 'Offered'], [false, 'Not offered']];
+
 export const RULES = [
   ['tableMin', 'Table minimum', [1, 5, 10, 15, 25, 50, 100].map((v) => [v, `$${v}`]), Number],
   ['tableMax', 'Table maximum', [1000, 2000, 5000, 10000, 25000].map((v) => [v, `$${v.toLocaleString('en-US')}`]), Number],
@@ -23,7 +25,9 @@ export const RULES = [
   ['buyVig', 'Buy bet 5% vig', [['win', 'Charged only on a win'], ['upfront', 'Charged up front']], String],
   ['layVig', 'Lay bet 5% vig', [['win', 'Charged only on a win'], ['upfront', 'Charged up front']], String],
   ['propsPay', 'Props pay (2, 3, 11, 12, hops)', [['to', '30 to 1 / 15 to 1'], ['for', '30 for 1 / 15 for 1']], String],
-  ['atsPayTable', 'All / Tall / Small', [['34-175', '34 / 34 / 175 to 1'], ['30-150', '30 / 30 / 150 to 1']], String],
+  ['atsPayTable', 'All / Tall / Small', [['34-175', '34 / 34 / 175 to 1'], ['30-150', '30 / 30 / 150 to 1'], ['off', 'Not offered']], String],
+  ['fireBet', 'Fire Bet', OFFERED, (v) => v === 'true'],
+  ['bigBets', 'Big 6 / Big 8', OFFERED, (v) => v === 'true'],
 ];
 
 export function initSettings(dialog, { state, setRules, setPrefs, reset }) {

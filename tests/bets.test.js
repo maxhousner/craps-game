@@ -50,14 +50,13 @@ test('pass line: seven-out loses flat and odds', () => {
   assert.equal(t.bankroll, 10000 - 60);
 });
 
-test('pass line is a contract bet once the point is set, except chips added since the last roll', () => {
+test('pass line is a contract bet once the point is set, including chips added after it', () => {
   const t = table();
   place(t, 'pass', 10);
   t.roll(3, 3);
   assert.equal(t.removeBet('pass').ok, false);
   place(t, 'pass', 5); // a put increase
-  assert.equal(t.removeBet('pass', 5).ok, true); // undo before the roll
-  assert.equal(t.removeBet('pass', 5).ok, false);
+  assert.equal(t.removeBet('pass', 5).ok, false); // locked at once (the game's Undo can still take it back)
   odds(t, 'pass', 25);
   assert.equal(t.removeOdds('pass').ok, true); // odds can always come down
 });
@@ -528,4 +527,48 @@ test('bankroll is never overdrawn', () => {
   assert.equal(t.placeBet('pass', 25).ok, false);
   place(t, 'pass', 20);
   assert.equal(t.placeBet('field', 5).ok, false);
+});
+
+test('bets the house rules leave off the table can\'t be made', () => {
+  const t = table({ bigBets: false, fireBet: false, atsPayTable: 'off' });
+  for (const key of ['big:6', 'big:8', 'fire', 'small', 'tall', 'all']) {
+    assert.match(t.placeBet(key, 5).error, /isn't offered/);
+  }
+  place(t, 'pass', 10);
+});
+
+test('locks: what can be added to or taken down before and after the point', () => {
+  const t = table();
+  for (const key of ['pass', 'dontPass', 'fire', 'all']) place(t, key, 5);
+  const can = (key) => [t.canAdd(t.bets[key]) === null, t.def(t.bets[key]).removable(t, t.bets[key]) > 0];
+  assert.deepEqual(can('pass'), [true, true]);
+  assert.deepEqual(can('dontPass'), [true, true]);
+  t.roll(3, 3); // point 6
+  assert.deepEqual(can('pass'), [true, false], 'contract: more can go on, nothing comes down');
+  place(t, 'pass', 5);
+  assert.deepEqual(can('pass'), [true, false], 'chips added after the point are part of the contract at once');
+  assert.deepEqual(can('dontPass'), [false, true]);
+  assert.deepEqual(can('fire'), [false, false]);
+  assert.deepEqual(can('all'), [false, false]);
+  place(t, 'come', 5);
+  t.roll(4, 4); // come travels to 8
+  assert.deepEqual(can('come:8'), [true, false]);
+});
+
+test('stepper sizes: a bet\'s proper minimum, and 1x of odds rounded to a proper unit', () => {
+  const t = table();
+  assert.equal(t.step({ key: 'pass', type: 'pass', number: null }), 5);
+  assert.equal(t.step({ key: 'place:6', type: 'place', number: 6 }), 6);
+  assert.equal(t.step({ key: 'horn', type: 'horn', number: null }), 4);
+  for (const [n, take, lay] of [[4, 10, 20], [5, 10, 15], [6, 10, 12]]) {
+    const u = table();
+    place(u, 'pass', 10);
+    place(u, 'dontPass', 10);
+    u.point = n;
+    assert.equal(u.oddsInfo(u.bets.pass).step, take, `odds on ${n}`);
+    assert.equal(u.oddsInfo(u.bets.dontPass).step, lay, `lay on ${n}`);
+  }
+  const v = withPoint(5);
+  place(v, 'pass', 15);
+  assert.equal(v.oddsInfo(v.bets.pass).step, 16, '$15 of odds on the 5 rounds up to $16');
 });

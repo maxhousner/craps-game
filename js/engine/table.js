@@ -4,7 +4,7 @@
 import { BET_TYPES, parseKey } from './bets.js';
 import {
   DEFAULT_RULES, POINTS, TRUE_ODDS, LAY_ODDS,
-  maxOdds, maxLay, unitOf, roundUpTo, lcm, pay, exactPay, ratioText,
+  maxOdds, maxLay, oddsMultiplier, unitOf, roundUpTo, lcm, pay, exactPay, ratioText,
 } from './rules.js';
 
 const ok = () => ({ ok: true });
@@ -17,7 +17,7 @@ export class CrapsTable {
     this.rules = { ...DEFAULT_RULES, ...rules };
     this.bankroll = bankroll ?? this.rules.startingBankroll;
     this.point = null;
-    this.bets = {}; // key → { key, type, number, dice?, amount, odds, working, fresh, vigPaid }
+    this.bets = {}; // key → { key, type, number, dice?, amount, odds, working, vigPaid }
     this.shooter = { number: 1, rolls: 0, pointsMade: [] };
     this.atsNumbers = []; // numbers rolled since the last 7, for All/Tall/Small
     this.rollCount = 0;
@@ -99,7 +99,21 @@ export class CrapsTable {
     const take = def.odds === 'take';
     const ratio = take ? TRUE_ODDS[number] : LAY_ODDS[number];
     const max = take ? maxOdds(this.rules, number, bet.amount) : maxLay(this.rules, number, bet.amount);
-    return { number, ratio, unit: unitOf(ratio), max, take };
+    const unit = unitOf(ratio);
+    // One "1x" of odds (or the lay that wins as much), for My Bets' odds stepper.
+    const step = Math.min(max, roundUpTo(Math.ceil(max / oddsMultiplier(this.rules, number)), unit));
+    return { number, ratio, unit, max, take, step };
+  }
+
+  // How much My Bets' +/− changes a bet: its proper minimum ($6 on the 6 at a $5 table).
+  step(bet) {
+    return this.limits(bet).min;
+  }
+
+  // Why more can't go on an existing bet right now, or null if it can.
+  canAdd(bet) {
+    const def = this.def(bet);
+    return def.offered(this.rules) ? def.canPlace(this, bet) : `${def.label(bet)} isn't offered at this table.`;
   }
 
   upfrontVig(bet, amount) {
@@ -118,8 +132,8 @@ export class CrapsTable {
     const spec = parseKey(key);
     if (!spec) return fail('That isn\'t a bet on this table.');
     const def = BET_TYPES[spec.type];
-    const bet = this.bets[key] ?? { key, ...spec, amount: 0, odds: 0, working: null, fresh: 0, vigPaid: 0 };
-    const why = def.canPlace(this, bet);
+    const bet = this.bets[key] ?? { key, ...spec, amount: 0, odds: 0, working: null, vigPaid: 0 };
+    const why = this.canAdd(bet);
     if (why) return fail(why);
     const conflict = (def.conflicts?.(bet) ?? []).find((k) => this.bets[k]);
     if (conflict) return fail(`Take down your ${this.label(conflict)} first. A number can be placed or bought, not both.`);
@@ -130,7 +144,6 @@ export class CrapsTable {
     if (amount + vigDelta > this.bankroll) return fail('Not enough bankroll for that bet.');
     this.bankroll -= amount + vigDelta;
     bet.amount = newAmount;
-    bet.fresh += amount;
     bet.vigPaid += vigDelta;
     if (!this.bets[key]) this.setBet(key, bet);
     return ok();
@@ -155,7 +168,6 @@ export class CrapsTable {
     const vigRefund = bet.vigPaid - this.upfrontVig(bet, newAmount);
     this.bankroll += take + vigRefund;
     bet.amount = newAmount;
-    bet.fresh = Math.max(0, bet.fresh - take);
     bet.vigPaid -= vigRefund;
     // Odds can't be more than the max for the smaller flat bet.
     const info = this.oddsInfo(bet);
@@ -334,7 +346,6 @@ export class CrapsTable {
     }
     if (total === 7) this.atsNumbers = [];
     else if (!this.atsNumbers.includes(total)) this.atsNumbers.push(total);
-    for (const bet of this.betList()) bet.fresh = 0;
 
     return {
       d1, d2, total,

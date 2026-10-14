@@ -35,6 +35,13 @@ const EDGES = [
   ['Fire Bet', 20.76, 'fire'],
 ];
 
+// The contents, grouped. Section ids are the guide's anchors, so links into the guide keep working.
+const GROUPS = [
+  ['Learn', ['basics', 'using', 'map']],
+  ['Bets', ['line-bets', 'number-bets', 'center-bets', 'side-bets']],
+  ['Reference', ['working', 'proper-units', 'house-edge', 'smart-play', 'simulator', 'house-rules', 'glossary']],
+];
+
 // A small copy of the table under each bet's summary, with that bet's spots lit. Filled in by renderMiniMaps.
 const miniMap = (id) => `<div class="mini-map" data-topic="${id}" inert aria-hidden="true"></div>`;
 const spotTopic = (spot) => topicFor(spot.dataset.key ?? spot.dataset.odds, !!spot.dataset.odds);
@@ -61,6 +68,8 @@ function renderEdges() {
 
 function renderMap() {
   const rules = { ...DEFAULT_RULES, ...savedRules() };
+  // The guide explains every bet, so the map also shows the ones this table doesn't offer.
+  Object.assign(rules, { bigBets: true, fireBet: true }, rules.atsPayTable === 'off' && { atsPayTable: DEFAULT_RULES.atsPayTable });
   buildFelt(document.getElementById('map-felt'), rules);
   buildProps(document.getElementById('map-props'), rules);
   document.querySelectorAll('.help-map .spot').forEach((spot) => {
@@ -95,36 +104,57 @@ function renderMiniMaps() {
 }
 
 function renderToc() {
-  const items = [...document.querySelectorAll('.guide .help-section')].map((s) => {
+  const item = (id) => {
+    const s = document.getElementById(id);
     const topics = [...s.querySelectorAll('.topic[id]')];
     const sub = topics.length
       ? `<ol>${topics.map((t) => `<li><a href="#${t.id}">${t.querySelector('h3').textContent}</a></li>`).join('')}</ol>`
       : '';
-    return `<li><a href="#${s.id}">${s.querySelector('h2').textContent}</a>${sub}</li>`;
+    return `<li><a href="#${id}">${s.querySelector('h2').textContent}</a>${sub}</li>`;
+  };
+  const html = GROUPS.map(([name, ids]) => `
+    <div class="toc-group"><h2>${name}</h2><ol>${ids.map(item).join('')}</ol></div>`).join('');
+  document.getElementById('toc').innerHTML = html;
+  document.getElementById('toc-sheet-list').innerHTML = html;
+
+  // Phones: the sticky Contents bar opens the list as a sheet; picking a link closes it.
+  const sheet = document.getElementById('toc-sheet');
+  document.getElementById('toc-open').addEventListener('click', () => sheet.showModal());
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet || e.target.closest('a, [data-close]')) sheet.close();
   });
-  document.getElementById('toc').innerHTML = `<ol>${items.join('')}</ol>`;
 }
 
-// Light up the contents entry for the part of the guide on screen.
+// Light up the contents entries for the part of the guide on screen, open that section's list of
+// bets in the sidebar, and name it in the phone's Contents bar.
 function trackPosition() {
   const toc = document.getElementById('toc');
+  const here = document.getElementById('toc-here');
   const wide = matchMedia('(min-width: 960px)');
-  const links = new Map([...toc.querySelectorAll('a')].map((a) => [a.hash.slice(1), a]));
+  const links = new Map();
+  for (const a of document.querySelectorAll('.toc a, #toc-sheet-list a')) {
+    links.set(a.hash.slice(1), [...(links.get(a.hash.slice(1)) ?? []), a]);
+  }
   const targets = [...document.querySelectorAll('.guide .help-section, .guide .topic[id]')].filter((el) => links.has(el.id));
   let lit = [];
   let queued = false;
   const update = () => {
     queued = false;
-    let here = null;
+    let at = null;
     for (const el of targets) {
       if (el.getBoundingClientRect().top > 140) break;
-      here = el;
+      at = el;
     }
-    const next = [here?.closest('.help-section'), here].filter((el, i, all) => el && all.indexOf(el) === i).map((el) => links.get(el.id));
+    const path = [at?.closest('.help-section'), at].filter((el, i, all) => el && all.indexOf(el) === i);
+    const next = path.flatMap((el) => links.get(el.id));
     if (next.length !== lit.length || next.some((a, i) => a !== lit[i])) {
       lit.forEach((a) => a.removeAttribute('aria-current'));
       next.forEach((a) => a.setAttribute('aria-current', 'location'));
-      if (wide.matches && next.length) next.at(-1).scrollIntoView({ block: 'nearest' });
+      toc.querySelectorAll('li.open').forEach((li) => li.classList.remove('open'));
+      if (path[0]) links.get(path[0].id).find((a) => toc.contains(a)).parentElement.classList.add('open');
+      here.textContent = path.map((el) => el.querySelector('h2, h3').textContent).join(' · ');
+      const side = next.filter((a) => toc.contains(a)).at(-1);
+      if (wide.matches && side) side.scrollIntoView({ block: 'nearest' });
       lit = next;
     }
   };

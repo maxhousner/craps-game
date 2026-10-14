@@ -6,7 +6,7 @@ import { esc } from './ui/html.js';
 import { dieHTML } from './ui/table-view.js';
 import { resultsText, toast } from './ui/controls.js';
 import { rangeChart, fanChart, histograms, signed } from './ui/charts.js';
-import { describePlan, validateStrategy } from './sim/strategy.js';
+import { describePlan, validateStrategy, unofferedNote } from './sim/strategy.js';
 import { PRESETS } from './sim/presets.js';
 import { loadLibrary, saveToLibrary, removeFromLibrary, newId, isPreset, findStrategy } from './sim/library.js';
 import { runSession, summarize, bands, notableSessions, sessionSeed, horizon, newResultArrays, OUTCOMES } from './sim/simulate.js';
@@ -65,6 +65,7 @@ function renderLineup() {
           <h3>${esc(s.name)}</h3>
           ${s.notes ? `<p class="notes">${esc(s.notes)}</p>` : ''}
           <ul>${s.plans.map((p) => `<li>${describePlan(p)}</li>`).join('')}</ul>
+          ${unofferedNote(s, settings.rules) ? `<p class="skipped">${unofferedNote(s, settings.rules)}</p>` : ''}
         </div>
         <div class="card-actions">
           <button class="ghost" data-edit="${i}">Edit</button>
@@ -152,6 +153,7 @@ function readSettings() {
   }
   $('rules-summary').textContent = rulesSummary(settings.rules);
   saveState();
+  renderLineup(); // notes about bets these rules don't offer
 }
 
 // ---------- Running ----------

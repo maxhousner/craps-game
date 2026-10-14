@@ -21,6 +21,17 @@
     </nav>
   </header>
 
+  <div class="toc-bar">
+    <button class="toc-btn" id="toc-open" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h10"/></svg>
+      <span class="toc-btn-label">Contents</span><span class="toc-here" id="toc-here"></span>
+    </button>
+  </div>
+  <dialog class="toc-sheet" id="toc-sheet" aria-label="Contents">
+    <div class="sheet-head"><h2>Contents</h2><button class="icon-btn" data-close aria-label="Close">✕</button></div>
+    <nav class="toc-list" id="toc-sheet-list" aria-label="Contents"></nav>
+  </dialog>
+
   <div class="help-layout">
     <nav class="toc" id="toc" aria-label="Contents"></nav>
 
@@ -64,7 +75,7 @@
         <h3>Around the table</h3>
         <ul class="plain">
           <li><strong>The bar above the table</strong> shows the last roll and the stickman's call, your recent rolls, and your bankroll, money on the table, session result and the point.</li>
-          <li><strong>My Bets</strong> lists every bet with what it wins if it hits, plus <kbd>+</kbd> <kbd>−</kbd> <kbd>On/Off</kbd> <kbd>✕</kbd> buttons. On a computer it's in the right-hand column under your session stats. On a phone, tap <em>My Bets</em> under the table.</li>
+          <li><strong>My Bets</strong> lists every bet with what it wins if it hits. Each bet (and its odds) has <kbd>−</kbd> <kbd>+</kbd> buttons that change it by one unit, like $5 on the Pass Line or $6 on the 6, and odds move 1x at a time with <kbd>Max</kbd> for full odds. Tap an amount to type an exact figure. <kbd>Turn off</kbd> and <kbd>✕</kbd> turn a bet off or take it down. A padlock marks what the rules won't let you change; tap it to see why. On a computer My Bets is in the right-hand column above your session stats. On a phone, tap <em>My Bets</em> under the table.</li>
           <li><strong>Center action</strong> (the one-roll and hardway bets) sits in a felt strip under the table. <em>Hide</em> folds it away, and the bar still shows how much you have bet there. On a phone, tap <em>Center Props</em> under the table.</li>
           <li><strong>Session stats</strong> track your profit, rolls, shooters, points made and how often each number has rolled compared with the odds.</li>
         </ul>
@@ -113,6 +124,7 @@
         <p>You can turn place, buy, lay, hardway and Big 6/8 bets (and come-bet odds) on or off at any time. A gray chip with an <span class="tag">OFF</span> tag isn't working; an <span class="tag light">ON</span> tag means you turned it on for the come-out.</p>
         <h3>Contract bets</h3>
         <p>Once a point is set, <strong>Pass Line and Come bets can't be taken down</strong>. Their advantage comes from the come-out roll, where 7 and 11 win 8 ways and craps loses only 4. After that the bet is the underdog, so the casino holds you to it. The don't side can always come down, because doing so only helps the house. The Fire Bet and All/Tall/Small are also locked once rolling starts. Odds can always come down.</p>
+        <p>My Bets shows a padlock where the rules stop you: <strong>Contract</strong> means you can add to the bet but not lower it, and <strong>Locked</strong> means it can't change at all until it's decided. Tap either one for the reason.</p>
       </section>
 
       <section class="help-section" id="proper-units">
@@ -188,7 +200,8 @@
           <div><dt>Don't side pushes on</dt><dd>Bar 12 (most casinos) or bar 2. The edge is the same.</dd></div>
           <div><dt>Buy / lay vig</dt><dd>Charged only when the bet wins (cheaper) or up front when you make the bet.</dd></div>
           <div><dt>Props pay</dt><dd>"To 1" (30 to 1, 15 to 1) or "for 1" (30 for 1 = 29 to 1). Affects the 2, 3, 11, 12, horn bets, C&amp;E and hops.</dd></div>
-          <div><dt>All / Tall / Small</dt><dd>34/34/175 to 1 or the stingier 30/30/150.</dd></div>
+          <div><dt>All / Tall / Small</dt><dd>34/34/175 to 1, the stingier 30/30/150, or not offered.</dd></div>
+          <div><dt>Fire Bet, Big 6 / Big 8</dt><dd>Offered or not offered. Many casinos skip the side bets, and Atlantic City bans the Big 6/8. A bet that isn't offered disappears from the table, and autoplay and the simulator skip it. This guide still explains every bet.</dd></div>
           <div><dt>Allow non-proper bets</dt><dd>Lets you roll with bets that aren't in proper units. Payouts round down.</dd></div>
           <div><dt>Fast roll</dt><dd>Skips the dice animation, which is handy when you're testing a strategy.</dd></div>
         </dl>

@@ -73,47 +73,89 @@ export function resultsText(results, table) {
   }).join(' · ');
 }
 
-// One row in My Bets or the spot menu: amount, payout and the controls for that bet.
 // An issue line with its Fix button, used in My Bets and above the chip rack.
 const issueHTML = (i) => `
   <p class="issue ${i.level}">${i.message}
     <button data-action="fix" data-key="${i.key}" data-part="${i.part}">Fix</button></p>`;
 
-function betRow(table, bet, chip, issues) {
+const LOCK_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z"/></svg>';
+const attr = (text) => text.replaceAll('"', '&quot;');
+
+// − $amount + for a bet or its odds. A side the rules lock (why.up / why.down) shows a padlock that
+// explains itself when tapped; a side that's only at its limit is disabled.
+function stepper(bet, part, label, amount, { up, down, why = {} }) {
+  const btn = (action, text, aria, off = false) =>
+    `<button class="step" data-action="${action}" data-key="${bet.key}" aria-label="${aria}"${off ? ' disabled' : ''}>${text}</button>`;
+  const lock = (reason) => `<button class="step lock-btn" data-action="why" data-why="${attr(reason)}" aria-label="Locked: ${attr(reason)}">${LOCK_SVG}</button>`;
+  const editable = up || down;
+  const amt = editable
+    ? `<button class="amt" data-action="edit" data-key="${bet.key}" data-part="${part}" data-value="${amount}" aria-label="${label} ${money(amount)}. Tap to type an amount.">${money(amount)}</button>`
+    : `<span class="amt">${money(amount)}</span>`;
+  return `<div class="stepper">
+    ${down ? btn(`${part}-down`, '−', `Lower ${label} by ${money(down)}`) : why.down ? lock(why.down) : btn('', '−', `Lower ${label}`, true)}
+    ${amt}
+    ${up ? btn(`${part}-up`, '+', `Raise ${label} by ${money(up)}`) : why.up ? lock(why.up) : btn('', '+', `Raise ${label}`, true)}
+  </div>`;
+}
+
+// One row in My Bets or the spot menu: the bet, what it pays, steppers for the bet and its odds, and locks.
+function betRow(table, bet, issues) {
   const def = table.def(bet);
   const label = def.label(bet);
   const working = table.isWorking(bet);
   const info = table.oddsInfo(bet);
   const hit = def.hitWin?.(table, bet);
   const removable = def.removable(table, bet);
+  const addWhy = table.canAdd(bet);
+  const step = table.step(bet);
   let status = '';
   if (def.toggle === 'bet') status = working ? 'Working' : 'Off';
   if (def.toggle === 'odds' && bet.number && bet.odds) status = working ? 'Odds working' : 'Odds off';
-  const btn = (action, text, aria, disabled = false) =>
-    `<button data-action="${action}" data-key="${bet.key}" aria-label="${aria}"${disabled ? ' disabled' : ''}>${text}</button>`;
+  const tool = (action, text, aria, cls = '') =>
+    `<button class="tool${cls}" data-action="${action}" data-key="${bet.key}" aria-label="${aria}">${text}</button>`;
+  const lockedWhy = removable === 0 ? def.locked(table, bet) : null;
+  const tag = addWhy && !removable ? 'Locked' : !addWhy && !removable ? 'Contract' : '';
+
+  let oddsRow = '';
+  if (info) {
+    const word = info.take ? 'Odds' : 'Lay';
+    const room = info.max - bet.odds;
+    oddsRow = `
+      <div class="step-row">
+        <span class="step-label">${word}</span>
+        ${stepper(bet, 'odds', `${word} on ${label}`, bet.odds, {
+          up: room > 0 && Math.min(info.step, room), down: bet.odds && Math.min(info.step, bet.odds),
+        })}
+        ${room > 0 ? `<button class="tool" data-action="odds-max" data-key="${bet.key}" aria-label="Max ${word.toLowerCase()} on ${label}, ${money(info.max)}">Max</button>` : ''}
+      </div>`;
+  }
   return `
     <div class="bet-row${status && !working ? ' is-off' : ''}">
-      <div class="bet-main">
+      <div class="bet-head">
         <span class="bet-name">${label}</span>
-        <span class="bet-amt">${money(bet.amount)}${bet.odds ? ` <small>+ ${money(bet.odds)} ${info?.take === false ? 'lay' : 'odds'}</small>` : ''}</span>
         <span class="bet-meta">${def.pays(table.rules, bet)}${hit != null ? ` · wins ${money(hit)}` : ''}${status ? ` · <b>${status}</b>` : ''}</span>
+        <span class="bet-tools">
+          ${def.toggle && (def.toggle === 'bet' || bet.odds) ? tool('toggle', working ? 'Turn off' : 'Turn on', `Turn ${label} ${working ? 'off' : 'on'}`) : ''}
+          ${removable >= bet.amount ? tool('down', '✕', `Take down ${label}`, ' icon') : ''}
+        </span>
       </div>
-      <div class="bet-actions">
-        ${btn('add', `+${shortMoney(chip)}`, `Add $${chip} to ${label}`)}
-        ${btn('minus', `−${shortMoney(chip)}`, `Remove $${chip} from ${label}`, removable === 0)}
-        ${info ? btn('odds-add', `+${info.take ? 'Odds' : 'Lay'}`, `Add $${chip} ${info.take ? 'odds' : 'lay odds'} to ${label}`) : ''}
-        ${info && bet.odds ? btn('odds-minus', `−${info.take ? 'Odds' : 'Lay'}`, `Remove $${chip} odds from ${label}`) : ''}
-        ${def.toggle && (def.toggle === 'bet' || bet.odds) ? btn('toggle', working ? 'Off' : 'On', `Turn ${label} ${working ? 'off' : 'on'}`) : ''}
-        ${btn('down', '✕', `Take down ${label}`, removable < bet.amount)}
+      <div class="step-row">
+        <span class="step-label">Bet</span>
+        ${stepper(bet, 'bet', label, bet.amount, {
+          up: !addWhy && step, down: removable && Math.min(step, removable),
+          why: { up: addWhy, down: lockedWhy },
+        })}
+        ${tag ? `<button class="lock-tag" data-action="why" data-why="${attr(tag === 'Contract' ? lockedWhy : `${lockedWhy} ${addWhy}`)}">${LOCK_SVG}${tag}</button>` : ''}
       </div>
+      ${oddsRow}
       ${issues.filter((i) => i.key === bet.key).map(issueHTML).join('')}
     </div>`;
 }
 
-export function renderBetList(el, table, chip, issues) {
+export function renderBetList(el, table, issues) {
   const bets = Object.values(table.bets);
   el.innerHTML = bets.length
-    ? bets.map((b) => betRow(table, b, chip, issues)).join('')
+    ? bets.map((b) => betRow(table, b, issues)).join('')
     : '<p class="empty">No bets yet. Pick a chip below, then tap a spot on the table.</p>';
 }
 
@@ -134,7 +176,7 @@ export function renderSpotMenu(el, table, chip, spot, issues) {
     keys = [spot.key];
     help = [[topicFor(spot.key, spot.odds), spot.odds ? null : spot.key, 'What\'s this?']];
   }
-  const rows = keys.filter((k) => table.bets[k]).map((k) => betRow(table, table.bets[k], chip, issues)).join('');
+  const rows = keys.filter((k) => table.bets[k]).map((k) => betRow(table, table.bets[k], issues)).join('');
   const open = help.find(([id]) => id === spot.help);
   el.innerHTML = `
     <div class="sheet-head"><h2>${title}</h2><button class="icon-btn" data-close aria-label="Close">✕</button></div>

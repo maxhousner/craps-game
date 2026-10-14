@@ -45,7 +45,7 @@ export function buildFelt(el, rules) {
     </div>`).join('');
 
   el.innerHTML = `
-    <div class="felt-grid">
+    <div class="felt-grid${rules.bigBets ? '' : ' no-big'}">
       <button class="spot dc-spot" data-key="dontCome" style="grid-area:dc" aria-label="Don't Come, bar ${rules.barNumber}">
         <span class="label">DON'T COME</span><span class="sub">BAR ${bar}</span>
         <span class="chips"></span><span class="puck-slot"></span></button>
@@ -64,10 +64,10 @@ export function buildFelt(el, rules) {
         <button class="spot odds-spot" data-odds="dontPass" aria-label="Lay odds on Don't Pass">
           <span class="zone-label">LAY ODDS</span><span class="chips"></span></button>
       </div>
-      <div class="big-spot" style="grid-area:big">
+      ${rules.bigBets ? `<div class="big-spot" style="grid-area:big">
         <button class="spot big6" data-key="big:6" aria-label="Big 6, even money"><span class="label">BIG</span><span class="big-num">6</span><span class="chips"></span></button>
         <button class="spot big8" data-key="big:8" aria-label="Big 8, even money"><span class="label">BIG</span><span class="big-num">8</span><span class="chips"></span></button>
-      </div>
+      </div>` : ''}
       <div class="pass-row" style="grid-area:pass">
         <button class="spot pass-spot" data-key="pass" aria-label="Pass Line">
           <span class="label">PASS LINE</span><span class="chips"></span></button>
@@ -101,6 +101,8 @@ export function buildProps(el, rules) {
     `<span class="name">${name.toUpperCase()}</span>${pays(`${atsPays(rules, kind)} to 1`)}`,
     `${name}: ${ATS_NUMBERS[kind].join(', ')} before a 7, pays ${atsPays(rules, kind)} to 1`);
 
+  const atsOn = rules.atsPayTable !== 'off';
+  const side = rules.fireBet || atsOn;
   el.innerHTML = `
     <div class="sheet-head"><h2>Center Action</h2><button class="icon-btn sheet-close" data-close aria-label="Close">✕</button></div>
     <div class="prop-group">
@@ -123,13 +125,14 @@ export function buildProps(el, rules) {
       <details class="hops"><summary>Hop bets <small>easy ${hopPays(rules, 1, 2)}:1 · hard ${hopPays(rules, 1, 1)}:1</small></summary>
         <div class="hop-grid">${hops.join('')}</div></details>
     </div>
-    <div class="prop-group side-group">
+    ${side ? `<div class="prop-group side-group">
       <h2 class="side-title">Side Bets</h2>
-      ${prop('fire', `<span class="name">FIRE BET</span>${pays('4 pts 24 · 5 pts 249 · 6 pts 999 to 1')}${tracker('fire-tracker', POINTS)}`,
-        'Fire Bet: different points made by this shooter, pays 24, 249 or 999 to 1', 'wide fire')}
-      <div class="prop-grid three">${ats('small', 'Small')}${ats('tall', 'Tall')}${ats('all', 'All')}</div>
-      <p class="ats-row">Rolled since last 7: ${tracker('ats-tracker', ATS_NUMBERS.all)}</p>
-    </div>`;
+      ${rules.fireBet ? prop('fire', `<span class="name">FIRE BET</span>${pays('4 pts 24 · 5 pts 249 · 6 pts 999 to 1')}${tracker('fire-tracker', POINTS)}`,
+        'Fire Bet: different points made by this shooter, pays 24, 249 or 999 to 1', 'wide fire') : ''}
+      ${atsOn ? `<div class="prop-grid three">${ats('small', 'Small')}${ats('tall', 'Tall')}${ats('all', 'All')}</div>
+      <p class="ats-row">Rolled since last 7: ${tracker('ats-tracker', ATS_NUMBERS.all)}</p>` : ''}
+    </div>` : ''}`;
+  el.classList.toggle('no-side', !side);
 }
 
 // The element a bet lives on (for chips, issue outlines and win/lose markers).

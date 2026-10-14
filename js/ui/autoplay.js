@@ -1,5 +1,5 @@
 // Autoplay dialog: pick a strategy and speed; the game then bets and rolls on its own.
-import { describePlan } from '../sim/strategy.js';
+import { describePlan, unofferedNote } from '../sim/strategy.js';
 import { PRESETS } from '../sim/presets.js';
 import { loadLibrary, findStrategy } from '../sim/library.js';
 import { esc } from './html.js';
@@ -11,7 +11,7 @@ const SPEEDS = {
   turbo: { label: 'Turbo', delay: 40, fast: true },
 };
 
-export function initAutoplay(dialog, { onStart }) {
+export function initAutoplay(dialog, { rules, onStart }) {
   let lastId = PRESETS[0].id;
   let lastSpeed = 'normal';
 
@@ -43,8 +43,10 @@ export function initAutoplay(dialog, { onStart }) {
     form.speed.value = lastSpeed;
     const describe = () => {
       const s = findStrategy(form.strategy.value);
+      const skipped = unofferedNote(s, rules());
       dialog.querySelector('#auto-desc').innerHTML = `${s.notes ? `<p>${esc(s.notes)}</p>` : ''}
-        <ul>${s.plans.map((p) => `<li>${describePlan(p)}</li>`).join('')}</ul>`;
+        <ul>${s.plans.map((p) => `<li>${describePlan(p)}</li>`).join('')}</ul>
+        ${skipped ? `<p class="skipped">${skipped}</p>` : ''}`;
     };
     form.strategy.addEventListener('change', describe);
     form.addEventListener('click', (e) => {

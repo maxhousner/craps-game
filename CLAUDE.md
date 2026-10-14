@@ -14,14 +14,15 @@ Plain HTML/CSS/JS with ES modules. No frameworks, CDNs, build step or dependenci
 ## Key folders
 - `js/engine/`: pure game logic, no DOM. Shared by the game, tests and the simulator.
   - `rules.js`: house-rule defaults, payout ratios, odds limits, vig, rounding
-  - `bets.js`: one entry per bet type (`canPlace`, `removable`, `defaultWorking`, `hitWin`, `resolve`)
-  - `table.js`: `CrapsTable`: bankroll, puck, shooter, `placeBet`/`removeBet`/`placeOdds`/`takeDownAll`/`roll`, `issues()`/`fix()`
+  - `bets.js`: one entry per bet type (`offered`, `canPlace`, `removable`, `defaultWorking`, `hitWin`, `resolve`). `offered(rules)` is false for bets the house rules leave off (Big 6/8, Fire, All/Tall/Small)
+  - `table.js`: `CrapsTable`: bankroll, puck, shooter, `placeBet`/`removeBet`/`placeOdds`/`takeDownAll`/`roll`, `issues()`/`fix()`, and for My Bets `canAdd(bet)`, `step(bet)` and `oddsInfo().step`
   - `dice.js`: crypto dice for play; seeded dice for tests and simulations
 - `js/ui/`: felt and center-action layout (`table-view.js`), controls/My Bets/spot menu (`controls.js`), `settings.js` (also `SAVE_KEY` and `savedRules()` for the other pages), `stats.js`, `to-top.js`
 - `js/main.js`: wires UI ↔ engine, undo snapshots, save/load (`localStorage` key `craps-game:v1`)
 - `css/styles.css` is shared by all three pages (tokens on `:root`, breakpoints 959/500/380px); `sim.css`/`help.css` add page rules. All pages share one header: logo + `nav.top-links` (Table · Simulator · Guide, `aria-current` on the current page). Update all three when adding a page.
-- Game layout (≥960px): status bar (dice, meters, Autoplay) on top; felt + collapsible center-action strip (`.center`, 12-column grid) in the main column; Session stats + My Bets in the side column. Phones use sheets for Center Props and My Bets.
-- `help.html` + `js/help.js` + `css/help.css`: the guide page. The table map and each bet card's mini map reuse `buildFelt`/`buildProps` (mini maps are clones with that bet's spots lit).
+- Game layout (≥960px): status bar (dice, meters, Autoplay) on top; felt + collapsible center-action strip (`.center`, 12-column grid) in the main column; My Bets above Session stats in the side column. Phones use sheets for Center Props and My Bets (the My Bets sheet covers the dock; Center Props and the spot menu sit above it because they use the chip rack).
+- My Bets rows: −/+ steppers by the bet's unit (`step`) and 1x of odds (`oddsInfo().step`) plus Max; tap an amount to type it. Padlocks show rule locks (Contract = add only, Locked = no change). The chip rack is only for putting chips on the felt.
+- `help.html` + `js/help.js` + `css/help.css`: the guide page. The table map and each bet card's mini map reuse `buildFelt`/`buildProps` (mini maps are clones with that bet's spots lit). The map always shows every bet, even ones the player's rules don't offer. Contents are grouped by `GROUPS` in `help.js` (sidebar on desktop, sticky Contents bar + sheet on phones); add new sections there.
 - `js/help-content.js`: the one source for bet write-ups (`TOPICS`, `topicFor(key)`). Feeds both the guide and the in-game "What's this?" in the spot menu. Update it whenever rules or payouts change. Facts render in `FACT_ORDER`.
 - `js/sim/`: strategy simulator
   - `strategy.js`: strategy data format (see header comment), `createRunner` (places a strategy's bets before each roll, tracks presses), `validateStrategy`, `describePlan`

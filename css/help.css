@@ -7,13 +7,42 @@
 
 /* Contents */
 .toc { position: sticky; top: 12px; scroll-margin-top: 12px; align-self: start; max-height: calc(100vh - 24px); overflow: auto; font-size: 14px; padding: 8px 6px 8px 0; }
-.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc ol, .toc-list ol { list-style: none; margin: 0; padding: 0; }
+.toc-group + .toc-group { margin-top: 16px; }
+.toc-group h2 { margin: 0 0 4px 8px; font: 700 11px/1.4 var(--font-ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .toc a { display: block; color: var(--muted); text-decoration: none; padding: 4px 8px; border-radius: 6px; }
 .toc a:hover { color: var(--text); background: var(--panel); }
-.toc > ol > li > a { color: var(--text); font-weight: 600; }
-.toc ol ol { margin: 2px 0 8px 10px; padding-left: 6px; border-left: 1px solid var(--border); }
+.toc-group > ol > li > a { color: var(--text); font-weight: 600; }
+/* A bet section's list of bets opens while you're reading that section. */
+.toc ol ol { display: none; margin: 2px 0 8px 10px; padding-left: 6px; border-left: 1px solid var(--border); }
+.toc li.open > ol { display: block; }
 .toc ol ol a { font-size: 13px; padding: 2px 8px; }
-.toc a[aria-current], .toc > ol > li > a[aria-current] { color: var(--gold); background: var(--panel); }
+.toc a[aria-current], .toc-group > ol > li > a[aria-current] { color: var(--gold); background: var(--panel); }
+
+/* Phones: a sticky Contents bar that opens the same list as a bottom sheet. */
+.toc-bar { display: none; }
+.toc-sheet {
+  position: fixed; inset: auto 0 0; width: 100%; max-width: 100%; max-height: 85dvh; margin: 0;
+  border-radius: 18px 18px 0 0; border-bottom: 0; padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+}
+.toc-sheet .sheet-head {
+  position: sticky; top: 0; z-index: 1; margin: 0 -16px 8px; padding: 12px 16px 10px;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.toc-sheet .sheet-head h2 { font-size: 18px; }
+.toc-list .toc-group h2 { margin-left: 4px; }
+.toc-list .toc-group > ol > li > a {
+  display: flex; align-items: center; min-height: 44px; padding: 0 10px; border-radius: 8px;
+  color: var(--text); font-weight: 600; text-decoration: none;
+}
+.toc-list .toc-group > ol > li > a:active { background: var(--panel-2); }
+.toc-list ol ol { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 10px 10px; }
+.toc-list ol ol a {
+  display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px;
+  color: var(--muted); font-size: 13px; text-decoration: none;
+}
+.toc-list a[aria-current] { color: var(--gold); }
+.toc-list ol ol a[aria-current] { border-color: var(--gold); }
 
 /* Article */
 .guide { min-width: 0; }
@@ -92,12 +121,20 @@ table { border-collapse: collapse; font-size: 14px; }
 @media (max-width: 959px) {
   .help-map .props { width: 100%; max-width: 480px; }
   .help-layout { grid-template-columns: minmax(0, 1fr); gap: 4px; }
-  .toc { position: static; max-height: none; padding: 0; }
-  .toc ol ol { display: none; }
-  .toc > ol { display: flex; flex-wrap: wrap; gap: 6px; }
-  .toc > ol > li > a {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font-size: 13px;
+  .toc { display: none; }
+  .toc-bar {
+    display: block; position: sticky; top: 0; z-index: 30; padding: 8px 16px;
+    background: rgba(13, 16, 19, 0.94); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
   }
+  .toc-btn {
+    display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 14px; text-align: left;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; font-weight: 700;
+  }
+  .toc-btn:active { transform: scale(0.99); }
+  .toc-here { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gold); font-weight: 600; }
+  .toc-here:not(:empty)::before { content: "· "; color: var(--muted); }
+  .help-section, .topic { scroll-margin-top: 76px; }
   .guide h1 { font-size: 28px; }
   .help-section > h2 { font-size: 22px; }
   .topic { padding: 14px; }

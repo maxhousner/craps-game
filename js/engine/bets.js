@@ -31,7 +31,7 @@ const pass = {
   min: (r) => r.tableMin,
   odds: 'take',
   oddsNumber: (t) => t.point,
-  removable: (t, b) => (pointOn(t) ? b.fresh : b.amount),
+  removable: (t, b) => (pointOn(t) ? 0 : b.amount), // a contract once the point is set, even chips just added
   locked: () => 'The Pass Line is a contract bet once the point is set. It can\'t come down.',
   hitWin: (t, b) => (pointOn(t) ? b.amount + pay(b.odds, TRUE_ODDS[t.point]) : b.amount),
   resolve(t, b, { total }) {
@@ -85,7 +85,7 @@ const come = {
       ? 'Put bets can only be made after a point is set.'
       : 'Come bets start once a point is set. On the come-out, bet the Pass Line.';
   },
-  removable: (t, b) => (b.number ? b.fresh : b.amount),
+  removable: (t, b) => (b.number ? 0 : b.amount),
   locked: (t, b) => `Come ${b.number} is a contract bet. It can't come down, but its odds can.`,
   hitWin: (t, b) => b.amount + (b.number ? pay(b.odds, TRUE_ODDS[b.number]) : 0),
   resolve(t, b, { total }) {
@@ -184,6 +184,7 @@ const lay = {
 const big = {
   label: (b) => `Big ${b.number}`,
   pays: () => '1 to 1',
+  offered: (r) => r.bigBets,
   min: (r) => r.tableMin,
   numbers: [6, 8],
   toggle: 'bet',
@@ -316,6 +317,7 @@ const hop = oneRoll({
 // Fire Bet: pays on the seven-out for 4+ different points made, or at once on the 6th.
 const fire = {
   label: () => 'Fire Bet',
+  offered: (r) => r.fireBet,
   pays: () => '4 pts 24 to 1 · 5 pts 249 to 1 · 6 pts 999 to 1',
   max: () => 5,
   canPlace: (t) => (t.shooter.rolls === 0 && !pointOn(t) ? null : 'The Fire Bet can only be made before a new shooter\'s first roll.'),
@@ -334,6 +336,7 @@ function ats(kind, name) {
   return {
     label: () => name,
     pays: (r) => `${atsPays(r, kind)} to 1`,
+    offered: (r) => r.atsPayTable !== 'off',
     max: () => 25,
     canPlace: (t) => (t.atsNumbers.length === 0 ? null : 'All/Tall/Small can only be bet after a 7, before any other number rolls.'),
     removable: (t, b) => (t.atsNumbers.length === 0 ? b.amount : 0),
@@ -348,6 +351,7 @@ function ats(kind, name) {
 }
 
 const DEFAULTS = {
+  offered: () => true, // false when the house rules leave this bet off the table
   min: () => 1,
   max: (r) => r.tableMax,
   multiple: 1,

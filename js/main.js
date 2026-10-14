@@ -53,6 +53,7 @@ function buildStatic() {
   buildFelt($('felt'), table.rules);
   buildProps($('props'), table.rules);
   propKeys = new Set([...$('props').querySelectorAll('[data-key]')].map((el) => el.dataset.key));
+  $('center-title').textContent = $('props').classList.contains('no-side') ? 'Center action' : 'Center action & side bets';
 }
 
 function renderCenter() {
@@ -72,8 +73,9 @@ function render() {
   $('session').textContent = signed(pl);
   $('session').className = signClass(pl);
   $('point-label').textContent = table.point ?? 'OFF';
+  fitMeters();
   renderChipRack($('chip-rack'), chip);
-  renderBetList($('bet-list'), table, chip, issues);
+  renderBetList($('bet-list'), table, issues);
   const count = Object.keys(table.bets).length;
   $('bet-count').textContent = count ? `(${count})` : '';
   $('bets-on-table').textContent = money(table.totalOnTable());
@@ -88,6 +90,13 @@ function render() {
   renderHistory($('history'), history);
   renderStats($('stats'), stats, table);
   if (menuSpot) renderSpotMenu($('spot-menu'), table, chip, menuSpot, issues);
+}
+
+// On phones, long numbers can crowd the meters; the Autoplay button then shows only its icon.
+function fitMeters() {
+  const row = $('open-autoplay').parentElement;
+  row.classList.remove('tight');
+  row.classList.toggle('tight', row.scrollWidth > row.clientWidth);
 }
 
 function renderStatus() {
@@ -127,15 +136,62 @@ function takeDownAll() {
   act(() => (table.takeDownAll() ? { ok: true } : { ok: false, error: 'Nothing on the table can come down right now.' }));
 }
 
-function handleAction(action, key, part) {
+// Move a bet (or its odds) to an exact amount. 0 takes it down.
+function setTo(key, part, target) {
+  const bet = table.bets[key];
+  if (!bet) return { ok: false, error: 'There\'s no bet there.' };
+  const cur = part === 'odds' ? bet.odds : bet.amount;
+  if (part === 'odds') return target > cur ? table.placeOdds(key, target - cur) : table.removeOdds(key, cur - target);
+  return target > cur ? table.placeBet(key, target - cur) : table.removeBet(key, cur - target);
+}
+
+// Tapping an amount in My Bets swaps it for a number box. Enter or leaving the box sets it; Escape cancels.
+function editAmount(btn) {
+  const { key, part, value } = btn.dataset;
+  const input = document.createElement('input');
+  Object.assign(input, { type: 'number', min: 0, step: 1, value, className: 'amt amt-input' });
+  input.inputMode = 'numeric';
+  input.setAttribute('aria-label', btn.getAttribute('aria-label').replace(' Tap to type an amount.', ''));
+  let done = false;
+  const finish = (commit) => {
+    if (done) return;
+    done = true;
+    const target = Number(input.value);
+    if (!commit || input.value === '' || target === Number(value)) return render();
+    if (!Number.isInteger(target) || target < 0) {
+      toast('Bets are made in whole dollars.');
+      return render();
+    }
+    act(() => setTo(key, part, target));
+  };
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') finish(true);
+    else if (e.key === 'Escape') {
+      e.stopPropagation(); // cancel the edit, not close the sheet
+      finish(false);
+    }
+  });
+  input.addEventListener('blur', () => finish(true));
+  btn.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+function handleAction(action, key, part, el) {
   const bet = table.bets[key];
   switch (action) {
+    case 'bet-up': return act(() => table.placeBet(key, table.step(bet)));
+    case 'bet-down': return act(() => table.removeBet(key, Math.min(table.step(bet), table.def(bet).removable(table, bet))));
+    case 'odds-up': return act(() => table.placeOdds(key, Math.min(table.oddsInfo(bet).step, table.oddsInfo(bet).max - bet.odds)));
+    case 'odds-down': return act(() => table.removeOdds(key, Math.min(table.oddsInfo(bet).step, bet.odds)));
+    case 'odds-max': return act(() => setTo(key, 'odds', table.oddsInfo(bet).max));
+    case 'edit':
+      if (auto && !auto.paused) return toast('Pause autoplay to change bets.');
+      return rolling ? null : editAmount(el);
+    case 'why': return toast(el.dataset.why);
     case 'add': return act(() => table.placeBet(key, chip));
-    case 'minus': return act(() => table.removeBet(key, Math.min(chip, bet.amount)));
     case 'down': return act(() => table.removeBet(key));
     case 'toggle': return act(() => table.toggleWorking(key));
-    case 'odds-add': return act(() => table.placeOdds(key, chip));
-    case 'odds-minus': return act(() => table.removeOdds(key, Math.min(chip, bet.odds)));
     case 'fix': return act(() => table.fix(key, part));
     case 'fix-all': return act(() => {
       for (const i of table.issues()) if (table.bets[i.key]) table.fix(i.key, i.part);
@@ -275,7 +331,7 @@ function wireEvents() {
       closeMenu();
       closeSheets();
     } else if (t.dataset.action) {
-      handleAction(t.dataset.action, t.dataset.key, t.dataset.part);
+      handleAction(t.dataset.action, t.dataset.key, t.dataset.part, t);
     } else if (t.dataset.odds) {
       act(() => table.placeOdds(t.dataset.odds, chip));
     } else if (t.dataset.key) {
@@ -342,6 +398,7 @@ function wireEvents() {
   new ResizeObserver(() => {
     document.documentElement.style.setProperty('--dock-h', `${$('dock').offsetHeight}px`);
   }).observe($('dock'));
+  addEventListener('resize', fitMeters);
 }
 
 function initDev() {
@@ -391,7 +448,7 @@ $('center-toggle').addEventListener('click', () => {
   save();
   renderCenter();
 });
-$('open-autoplay').addEventListener('click', initAutoplay($('autoplay'), { onStart: startAuto }));
+$('open-autoplay').addEventListener('click', initAutoplay($('autoplay'), { rules: () => table.rules, onStart: startAuto }));
 render();
 renderStatus();
 renderCenter();

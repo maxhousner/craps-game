@@ -26,10 +26,8 @@
   <main class="layout">
     <section class="status" aria-label="Last roll">
       <div class="dice idle" id="dice"></div>
-      <div class="call" aria-live="polite">
-        <p id="call">Place your bets. Pick a chip, tap a spot, then roll.</p>
-        <p><span id="roll-net" class="net"></span> <span id="roll-detail" class="detail"></span></p>
-      </div>
+      <p class="call" aria-live="polite"><span id="call">Place your bets. Pick a chip, tap a spot, then roll.</span> <span id="roll-detail" class="detail"></span></p>
+      <span id="roll-net" class="net" aria-live="polite"></span>
       <ol id="history" class="history" aria-label="Recent rolls, newest first"></ol>
       <div class="meters">
         <div class="meter"><span>Bankroll</span><strong id="bankroll">$0</strong></div>
@@ -52,22 +50,22 @@
 
     <section class="center" id="center">
       <button class="center-bar" id="center-toggle" aria-expanded="true" aria-controls="props">
-        <span>Center action &amp; side bets</span><span class="center-on" id="center-on"></span><span class="center-act" id="center-act">Hide</span>
+        <span id="center-title">Center action &amp; side bets</span><span class="center-on" id="center-on"></span><span class="center-act" id="center-act">Hide</span>
       </button>
       <aside class="props sheet" id="props" aria-label="Center action and side bets"></aside>
     </section>
     </div>
 
     <div class="col-side">
-    <section class="stats-panel" id="stats" aria-label="Session stats"></section>
     <section class="bets-panel sheet" id="bets" aria-label="My bets">
       <div class="sheet-head">
         <h2>My Bets <small>on table <span id="bets-on-table">$0</span></small></h2>
         <button class="icon-btn sheet-close" data-close aria-label="Close">✕</button>
       </div>
       <div id="bet-list"></div>
-      <p class="tip">Tip: long-press (phone) or right-click (computer) any spot for more options, like buy, lay and put.</p>
+      <p class="tip">Tap an amount to type it. Long-press (phone) or right-click (computer) any spot on the table to buy, lay or put.</p>
     </section>
+    <section class="stats-panel" id="stats" aria-label="Session stats"></section>
     </div>
   </main>
 

@@ -13,7 +13,9 @@ export const DEFAULT_RULES = Object.freeze({
   layVig: 'win',
   propsPay: 'to', // 'to' = 30 to 1 / 15 to 1, 'for' = 30 for 1 / 15 for 1 (one less)
   allowImproper: false, // allow bets that aren't in proper units (payouts round down)
-  atsPayTable: '34-175', // All/Tall/Small: '34-175' or '30-150'
+  atsPayTable: '34-175', // All/Tall/Small: '34-175', '30-150' or 'off' (not offered)
+  fireBet: true, // false = the table doesn't offer the Fire Bet
+  bigBets: true, // false = no Big 6 / Big 8 (illegal in Atlantic City, gone from many layouts)
   startingBankroll: 1000,
 });
 

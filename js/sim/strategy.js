@@ -12,7 +12,7 @@
 //     onLoss: 'reset' | 'same' | 'double' | 'addUnit', max: 0 }
 
 import { POINTS, roundUpTo, lcm } from '../engine/rules.js';
-import { parseKey } from '../engine/bets.js';
+import { BET_TYPES, parseKey } from '../engine/bets.js';
 import { money } from '../engine/table.js';
 
 export const BET_KINDS = {
@@ -73,6 +73,15 @@ export function validateStrategy(s) {
 function labelFor(key) {
   const [bet, n] = key.split(':');
   return n ? `${BET_KINDS[bet].label.replace(/s$/, '')} ${n}` : BET_KINDS[bet].label;
+}
+
+// A note naming the strategy's bets that these house rules don't offer (the runner skips them), or ''.
+export function unofferedNote(strategy, rules) {
+  const off = strategy.plans.filter((p) => BET_TYPES[p.bet] && !BET_TYPES[p.bet].offered(rules)).map((p) => BET_KINDS[p.bet].label);
+  if (!off.length) return '';
+  return off.length === 1
+    ? `${off[0]} isn't offered under these house rules, so it's skipped.`
+    : `${off.join(' and ')} aren't offered under these house rules, so they're skipped.`;
 }
 
 const ORDINAL = (n) => (n === 1 ? '' : n === 2 ? '2nd ' : n === 3 ? '3rd ' : `${n}th `);
