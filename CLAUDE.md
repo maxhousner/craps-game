@@ -9,7 +9,7 @@ Plain HTML/CSS/JS with ES modules. No frameworks, CDNs, build step or dependenci
 - Run: `npm start` (or `python3 -m http.server 8080`), then open http://localhost:8080. Modules don't load from file://.
 - Test: `npm test` (scripted-dice tests plus exact house-edge proofs, ~5s)
 - Dev aid: add `?dev` to the URL for a "force next roll" control.
-- Deploy: GitHub Pages serves `main` / (root) at https://maxhousner.github.io/craps-game/. Pushing `main` deploys.
+- Deploy: GitHub Pages serves `main` / (root) at https://maxhousner.github.io/craps-game/. Pushing `main` deploys. If a deploy hangs ("updating_pages" until timeout, or a run stuck in "queued"), `gh api -X POST repos/maxhousner/craps-game/pages/builds` starts a fresh one.
 
 ## Key folders
 - `js/engine/`: pure game logic, no DOM. Shared by the game, tests and the simulator.
@@ -25,7 +25,7 @@ Plain HTML/CSS/JS with ES modules. No frameworks, CDNs, build step or dependenci
 - `help.html` + `js/help.js` + `css/help.css`: the guide page. The table map and each bet card's mini map reuse `buildFelt`/`buildProps` (mini maps are clones with that bet's spots lit). The map always shows every bet, even ones the player's rules don't offer. Contents are grouped by `GROUPS` in `help.js` (sidebar on desktop, sticky Contents bar + sheet on phones); add new sections there.
 - `js/help-content.js`: the one source for bet write-ups (`TOPICS`, `topicFor(key)`). Feeds both the guide and the in-game "What's this?" in the spot menu. Update it whenever rules or payouts change. Facts render in `FACT_ORDER`.
 - `js/sim/`: strategy simulator
-  - `strategy.js`: strategy data format (see header comment), `createRunner` (places a strategy's bets before each roll, tracks presses), `validateStrategy`, `describePlan`
+  - `strategy.js`: strategy data format (see header comment), `createRunner` (places a strategy's bets before each roll, tracks presses; bets the rules don't offer are skipped), `validateStrategy`, `describePlan`, `unofferedNote` (the skipped-bet note in autoplay and the simulator)
   - `presets.js`: popular strategies; `library.js`: saved strategies (`localStorage` key `craps-game:strategies`)
   - `simulate.js`: `runSession` (seeded dice; session i uses `sessionSeed(seed, i)` so every strategy sees the same rolls), `summarize`, `bands`, `newResultArrays`
   - `worker.js`: Web Worker; `sim-page.js` splits sessions across several workers and merges the results
@@ -41,5 +41,6 @@ Plain HTML/CSS/JS with ES modules. No frameworks, CDNs, build step or dependenci
 - `exactEV` in `tests/house-edge.test.js` checks every bet against published house edges. Run it after any payout change.
 - Strategy names are user-entered: escape them with `esc()` (`js/ui/html.js`) in HTML, and use `textContent` in chart tooltips.
 - The simulator is CPU-heavy: keep `roll()`, `problems()` and the runner's `decide()` allocation-light (benchmark: ~2 µs per roll).
+- The status bar keeps one height from roll to roll: `.history` has a min-height and an empty-state line, and the call is one line on desktop (ellipsis) and a 2-line clamp on phones. Don't add content that can wrap there. On phones `fitMeters()` (`main.js`) hides the Autoplay label when long numbers would overflow the meters.
 - Fonts are system stacks only (no web fonts/CDNs). `--font-table` must have lining (even-height) numerals; Georgia's old-style ones looked uneven.
 - Check UI changes in a browser with the Playwright plugin at desktop and ~390px. Its output goes to `.playwright-mcp/` (gitignored); delete it when done. After editing CSS/JS, refetch with `fetch(url, {cache: 'reload'})` or hard-refresh, or the browser serves stale files.
