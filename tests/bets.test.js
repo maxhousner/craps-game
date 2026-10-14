@@ -50,13 +50,14 @@ test('pass line: seven-out loses flat and odds', () => {
   assert.equal(t.bankroll, 10000 - 60);
 });
 
-test('pass line is a contract bet once the point is set, including chips added after it', () => {
+test('pass line is a contract bet once the point is set, except chips added since the last roll', () => {
   const t = table();
   place(t, 'pass', 10);
   t.roll(3, 3);
   assert.equal(t.removeBet('pass').ok, false);
   place(t, 'pass', 5); // a put increase
-  assert.equal(t.removeBet('pass', 5).ok, false); // locked at once (the game's Undo can still take it back)
+  assert.equal(t.removeBet('pass', 5).ok, true); // taken back before the roll
+  assert.equal(t.removeBet('pass', 5).ok, false);
   odds(t, 'pass', 25);
   assert.equal(t.removeOdds('pass').ok, true); // odds can always come down
 });
@@ -546,7 +547,9 @@ test('locks: what can be added to or taken down before and after the point', () 
   t.roll(3, 3); // point 6
   assert.deepEqual(can('pass'), [true, false], 'contract: more can go on, nothing comes down');
   place(t, 'pass', 5);
-  assert.deepEqual(can('pass'), [true, false], 'chips added after the point are part of the contract at once');
+  assert.deepEqual(can('pass'), [true, true], 'chips added since the last roll can come back off');
+  t.roll(1, 2);
+  assert.deepEqual(can('pass'), [true, false], 'after the next roll they\'re part of the contract');
   assert.deepEqual(can('dontPass'), [false, true]);
   assert.deepEqual(can('fire'), [false, false]);
   assert.deepEqual(can('all'), [false, false]);

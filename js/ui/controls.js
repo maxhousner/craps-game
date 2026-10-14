@@ -113,8 +113,9 @@ function betRow(table, bet, issues) {
   if (def.toggle === 'odds' && bet.number && bet.odds) status = working ? 'Odds working' : 'Odds off';
   const tool = (action, text, aria, cls = '') =>
     `<button class="tool${cls}" data-action="${action}" data-key="${bet.key}" aria-label="${aria}">${text}</button>`;
-  const lockedWhy = removable === 0 ? def.locked(table, bet) : null;
-  const tag = addWhy && !removable ? 'Locked' : !addWhy && !removable ? 'Contract' : '';
+  // Contract: part (or all) of the bet can't come down. Chips added since the last roll still can.
+  const lockedWhy = removable < bet.amount ? def.locked(table, bet) : null;
+  const tag = addWhy && !removable ? 'Locked' : !addWhy && lockedWhy ? 'Contract' : '';
 
   let oddsRow = '';
   if (info) {
@@ -143,9 +144,9 @@ function betRow(table, bet, issues) {
         <span class="step-label">Bet</span>
         ${stepper(bet, 'bet', label, bet.amount, {
           up: !addWhy && step, down: removable && Math.min(step, removable),
-          why: { up: addWhy, down: lockedWhy },
+          why: { up: addWhy, down: removable ? null : lockedWhy },
         })}
-        ${tag ? `<button class="lock-tag" data-action="why" data-why="${attr(tag === 'Contract' ? lockedWhy : `${lockedWhy} ${addWhy}`)}">${LOCK_SVG}${tag}</button>` : ''}
+        ${tag ? `<button class="lock-tag" data-action="why" data-why="${attr(tag === 'Locked' ? `${lockedWhy} ${addWhy}` : removable ? `${lockedWhy} Chips added since the last roll can still come off.` : lockedWhy)}">${LOCK_SVG}${tag}</button>` : ''}
       </div>
       ${oddsRow}
       ${issues.filter((i) => i.key === bet.key).map(issueHTML).join('')}

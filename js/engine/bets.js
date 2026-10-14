@@ -31,7 +31,7 @@ const pass = {
   min: (r) => r.tableMin,
   odds: 'take',
   oddsNumber: (t) => t.point,
-  removable: (t, b) => (pointOn(t) ? 0 : b.amount), // a contract once the point is set, even chips just added
+  removable: (t, b) => (pointOn(t) ? b.fresh : b.amount), // after the point, only chips added since the last roll
   locked: () => 'The Pass Line is a contract bet once the point is set. It can\'t come down.',
   hitWin: (t, b) => (pointOn(t) ? b.amount + pay(b.odds, TRUE_ODDS[t.point]) : b.amount),
   resolve(t, b, { total }) {
@@ -85,7 +85,7 @@ const come = {
       ? 'Put bets can only be made after a point is set.'
       : 'Come bets start once a point is set. On the come-out, bet the Pass Line.';
   },
-  removable: (t, b) => (b.number ? 0 : b.amount),
+  removable: (t, b) => (b.number ? b.fresh : b.amount),
   locked: (t, b) => `Come ${b.number} is a contract bet. It can't come down, but its odds can.`,
   hitWin: (t, b) => b.amount + (b.number ? pay(b.odds, TRUE_ODDS[b.number]) : 0),
   resolve(t, b, { total }) {

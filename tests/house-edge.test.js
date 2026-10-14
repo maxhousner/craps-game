@@ -21,7 +21,7 @@ function exactEV(table) {
     pointMatters ? t.point : null,
     ats ? sorted(t.atsNumbers) : null,
     fire ? sorted(t.shooter.pointsMade) : null,
-    Object.values(t.bets),
+    Object.values(t.bets).map(({ fresh, ...b }) => b),
   ]);
   const states = [];
   const index = new Map();

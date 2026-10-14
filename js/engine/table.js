@@ -17,7 +17,7 @@ export class CrapsTable {
     this.rules = { ...DEFAULT_RULES, ...rules };
     this.bankroll = bankroll ?? this.rules.startingBankroll;
     this.point = null;
-    this.bets = {}; // key → { key, type, number, dice?, amount, odds, working, vigPaid }
+    this.bets = {}; // key → { key, type, number, dice?, amount, odds, working, fresh, vigPaid }
     this.shooter = { number: 1, rolls: 0, pointsMade: [] };
     this.atsNumbers = []; // numbers rolled since the last 7, for All/Tall/Small
     this.rollCount = 0;
@@ -132,7 +132,7 @@ export class CrapsTable {
     const spec = parseKey(key);
     if (!spec) return fail('That isn\'t a bet on this table.');
     const def = BET_TYPES[spec.type];
-    const bet = this.bets[key] ?? { key, ...spec, amount: 0, odds: 0, working: null, vigPaid: 0 };
+    const bet = this.bets[key] ?? { key, ...spec, amount: 0, odds: 0, working: null, fresh: 0, vigPaid: 0 };
     const why = this.canAdd(bet);
     if (why) return fail(why);
     const conflict = (def.conflicts?.(bet) ?? []).find((k) => this.bets[k]);
@@ -144,6 +144,7 @@ export class CrapsTable {
     if (amount + vigDelta > this.bankroll) return fail('Not enough bankroll for that bet.');
     this.bankroll -= amount + vigDelta;
     bet.amount = newAmount;
+    bet.fresh += amount;
     bet.vigPaid += vigDelta;
     if (!this.bets[key]) this.setBet(key, bet);
     return ok();
@@ -168,6 +169,7 @@ export class CrapsTable {
     const vigRefund = bet.vigPaid - this.upfrontVig(bet, newAmount);
     this.bankroll += take + vigRefund;
     bet.amount = newAmount;
+    bet.fresh = Math.max(0, bet.fresh - take);
     bet.vigPaid -= vigRefund;
     // Odds can't be more than the max for the smaller flat bet.
     const info = this.oddsInfo(bet);
@@ -346,6 +348,7 @@ export class CrapsTable {
     }
     if (total === 7) this.atsNumbers = [];
     else if (!this.atsNumbers.includes(total)) this.atsNumbers.push(total);
+    for (const bet of this.betList()) bet.fresh = 0;
 
     return {
       d1, d2, total,
